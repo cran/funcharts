@@ -1,11 +1,8 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 <!-- badges: start -->
-<!-- [![CRAN status](https://www.r-pkg.org/badges/version/funcharts)](https://CRAN.R-project.org/package=funcharts) -->
-
+[![CRAN status](https://www.r-pkg.org/badges/version/funcharts)](https://CRAN.R-project.org/package=funcharts)
 [![R-CMD-check](https://github.com/unina-sfere/funcharts/workflows/R-CMD-check/badge.svg)](https://github.com/unina-sfere/funcharts/actions)
-[![Build
-Status](https://travis-ci.com/unina-sfere/funcharts.svg?branch=main)](https://travis-ci.com/unina-sfere/funcharts)
 <!-- badges: end -->
 
 # funcharts
@@ -31,6 +28,12 @@ In particular:
     [`vignette("centofanti2020", package = "funcharts")`](https://unina-sfere.github.io/funcharts/articles/centofanti2020.html).
 
 ## Installation
+
+You can install the CRAN version of the R package `funcharts` by doing:
+
+``` r
+install.packages("funcharts")
+```
 
 You can install the development version from GitHub with:
 

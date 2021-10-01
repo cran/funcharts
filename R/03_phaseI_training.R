@@ -79,18 +79,6 @@ calculate_limits <- function(pca,
     stop("pca must be a list produced by pca_mfd.")
   }
 
-  if (!identical(names(pca), c(
-    "harmonics",
-    "values",
-    "scores",
-    "varprop",
-    "meanfd",
-    "pcscores",
-    "data",
-    "scale"
-  ))) {
-    stop("pca must be a list produced by pca_mfd.")
-  }
   if (!is.null(tuning_data)) {
     if (!is.mfd(tuning_data)) {
       stop("tuning_data must be an object from mfd class.")
@@ -101,9 +89,23 @@ calculate_limits <- function(pca,
     }
   }
 
-  T2 <- get_T2(pca, components, newdata = tuning_data)
-  spe <- get_spe(pca, components, newdata = tuning_data)
-  id <- data.frame(id = tuning_data$fdnames[[2]])
+  if (!is.null(tuning_data)) {
+    tuning_data <- scale_mfd(tuning_data,
+                                    center = pca$center_fd,
+                                    scale = if (pca$scale) pca$scale_fd else FALSE)
+  }
+
+  T2_spe <- get_T2_spe(pca, components, newdata_scaled = tuning_data)
+  T2 <- select(T2_spe, "T2", contains("contribution_T2", ignore.case = FALSE))
+  spe <- select(T2_spe, "spe", contains("contribution_spe", ignore.case = FALSE))
+
+  obs <- if (!is.null(tuning_data)) {
+    tuning_data$fdnames[[2]]
+  } else {
+    pca$data$fdnames[[2]]
+  }
+
+  id <- data.frame(id = obs)
   T2_lim <- apply(T2, 2, function(x) quantile(x, 1 - alpha$T2))
   spe_lim <- apply(spe, 2, function(x) quantile(x, 1 - alpha$spe))
 
@@ -202,22 +204,10 @@ calculate_cv_limits <- function(pca,
     stop("pca must be a list produced by pca_mfd.")
   }
 
-  if (!identical(names(pca), c(
-    "harmonics",
-    "values",
-    "scores",
-    "varprop",
-    "meanfd",
-    "pcscores",
-    "data",
-    "scale"
-  ))) {
-    stop("pca must be a list produced by pca_mfd.")
-  }
-
   set.seed(seed)
   mfdobj <- pca$data
   nobs <- dim(mfdobj$coefs)[2]
+  nvar <- dim(mfdobj$coefs)[3]
   folds <- split(1:nobs, sample(cut(1:nobs, nfold, labels = FALSE)))
 
   single_cv <- function(ii) {
@@ -225,11 +215,14 @@ calculate_cv_limits <- function(pca,
     fd_test <- mfdobj[folds[[ii]]]
 
     pca_cv <- pca_mfd(fd_train, scale = pca$scale)
+    control_charts_pca(pca = pca_cv,
+                       components = components,
+                       newdata = fd_test)
 
-    T2 <- get_T2(pca_cv, components, newdata = fd_test)
-    spe <- get_spe(pca_cv, components, newdata = fd_test)
-
-    list(id = fd_test$fdnames[[2]], T2 = T2, spe = spe)
+    # T2 <- get_T2(pca_cv, components, newdata = fd_test)
+    # spe <- get_spe(pca_cv, components, newdata = fd_test)
+    #
+    # list(id = fd_test$fdnames[[2]], T2 = T2, spe = spe)
   }
   if (ncores == 1) {
     statistics_cv <- lapply(1:nfold, single_cv)
@@ -249,19 +242,32 @@ calculate_cv_limits <- function(pca,
     }
   }
 
-  T2       <- bind_rows(lapply(statistics_cv, function(x) x$T2))
-  spe      <- bind_rows(lapply(statistics_cv, function(x) x$spe))
+  statistics_cv <- statistics_cv %>%
+    bind_rows() %>%
+    arrange(id)
 
-  T2_lim  <- apply(T2, 2, function(x) quantile(x, 1 - alpha$T2))
-  spe_lim <-  apply(spe, 2, function(x) quantile(x, 1 - alpha$T2))
+  cont_T2 <- statistics_cv %>%
+    dplyr::select(!contains("_lim")) %>%
+    dplyr::select(contains("contribution_T2", ignore.case = FALSE))
 
-  T2_lim <- as.data.frame(t(T2_lim))
-  spe_lim <- as.data.frame(t(spe_lim))
+  cont_spe <- statistics_cv %>%
+    dplyr::select(!contains("_lim")) %>%
+    dplyr::select(contains("contribution_spe", ignore.case = FALSE))
 
-  names(T2_lim) <- paste0(names(T2_lim), "_lim")
-  names(spe_lim) <- paste0(names(spe_lim), "_lim")
+  T2_lim <- data.frame(T2 = quantile(statistics_cv$T2, 1 - alpha$T2))
+  spe_lim <- data.frame(spe = quantile(statistics_cv$spe, 1 - alpha$T2))
 
-  cbind(T2_lim, spe_lim)
+  cont_T2_lim  <- apply(cont_T2, 2, function(x) quantile(x, 1 - alpha$T2 / nvar))
+  cont_spe_lim <-  apply(cont_spe, 2, function(x) quantile(x, 1 - alpha$spe / nvar))
+
+  cont_T2_lim <- as.data.frame(t(cont_T2_lim))
+  cont_spe_lim <- as.data.frame(t(cont_spe_lim))
+
+  df_limits <- bind_cols(T2_lim, cont_T2_lim, spe_lim, cont_spe_lim)
+
+  names(df_limits) <- paste0(names(df_limits), "_lim")
+
+  df_limits
 
 }
 
