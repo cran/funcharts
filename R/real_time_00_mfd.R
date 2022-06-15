@@ -150,7 +150,7 @@ get_mfd_df_real_time <- function(
 #' A vector of values between 0 and 1, containing the domain points
 #' over which functional data are to be evaluated in real time.
 #' If the domain is the interval (a,b), for each instant k in the sequence,
-#' functions are evaluated in (a,k(b-a)).
+#' functions are evaluated in (a,a+k(b-a)).
 #' @param ncores
 #' If you want parallelization, give the number of cores/threads
 #' to be used when creating mfd objects separately for different instants.
@@ -177,9 +177,7 @@ get_mfd_list_real_time <- function(
   n_basis = 30,
   lambda = NULL,
   lambda_grid = 10 ^ seq(-10, 1, length.out = 10),
-  k_seq = seq(from = 0.25,
-              to = 1,
-              length.out = 10),
+  k_seq = seq(from = 0.2, to = 1, by = 0.1),
   ncores = 1) {
 
   if (!(is.list(data_list))) {
@@ -217,8 +215,7 @@ get_mfd_list_real_time <- function(
     get_mfd_list(data_list_ii,
                  grid = grid[grid <= kk],
                  n_basis = nbasis,
-                 lambda = lambda,
-                 ncores = 1)
+                 lambda = lambda)
   }
 
   if (ncores == 1) {
@@ -335,8 +332,7 @@ get_mfd_array_real_time <- function(
                   grid = grid[grid <= kk],
                   n_basis = nbasis,
                   lambda = lambda,
-                  lambda_grid = lambda_grid,
-                  ncores = 1)
+                  lambda_grid = lambda_grid)
   }
 
   if (ncores == 1) {

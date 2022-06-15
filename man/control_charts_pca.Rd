@@ -6,14 +6,16 @@
 \usage{
 control_charts_pca(
   pca,
-  components,
+  components = NULL,
   tuning_data = NULL,
   newdata,
   alpha = list(T2 = 0.025, spe = 0.025),
   limits = "standard",
-  seed = 0,
+  seed,
   nfold = 5,
-  ncores = 1
+  ncores = 1,
+  tot_variance_explained = 0.9,
+  single_min_variance_explained = 0
 )
 }
 \arguments{
@@ -22,7 +24,16 @@ obtained by doing MFPCA on the
 training set of multivariate functional data.}
 
 \item{components}{A vector of integers with the components over which
-to project the multivariate functional data.}
+to project the multivariate functional data.
+If this is not NULL, the arguments `single_min_variance_explained`
+and `tot_variance_explained` are ignored.
+If NULL, components are selected such that
+the total fraction of variance explained by them
+is at least equal to the argument `tot_variance_explained`,
+where only components explaining individually a fraction of variance
+at least equal to the argument `single_min_variance_explained`
+are considered to be retained.
+Default is NULL.}
 
 \item{tuning_data}{An object of class \code{mfd} containing
 the tuning set of the multivariate functional data, used to estimate the
@@ -41,7 +52,7 @@ the corresponding control chart.
 Note that at the moment you have to take into account manually
 the family-wise error rate and adjust
 the two values accordingly. See Capezza et al. (2020) and
-Centofanti et al. (2020)
+Centofanti et al. (2021)
 for additional details. Default value is
 \code{list(T2 = 0.025, spe = 0.025)}.}
 
@@ -54,7 +65,8 @@ using \code{calculate_cv_limits}. Default is "standard".}
 \item{seed}{If \code{limits=="cv"},
 since the split in the k groups is random,
 you can fix a seed to ensure reproducibility.
-Otherwise, this argument is ignored.}
+Deprecated: use \code{set.seed()} before calling
+the function for reproducibility.}
 
 \item{nfold}{If \code{limits=="cv"}, this gives the number of groups k
 used for k-fold cross-validation.
@@ -67,6 +79,19 @@ Otherwise, this argument is ignored.}
 in the k groups in parallel,
 give the number of cores/threads.
 Otherwise, this argument is ignored.}
+
+\item{tot_variance_explained}{The minimum fraction of variance
+that has to be explained
+by the set of multivariate functional principal components
+retained into the MFPCA model
+fitted on the functional covariates.
+Default is 0.9.}
+
+\item{single_min_variance_explained}{The minimum fraction of variance
+that has to be explained
+by each multivariate functional principal component
+such that it is retained into the MFPCA model.
+Default is 0.}
 }
 \value{
 A \code{data.frame} with as many rows as the number of
@@ -108,16 +133,13 @@ the Hotelling's T^2 and squared prediction error (SPE)
 control charts
 based on multivariate functional principal component analysis
 (MFPCA) performed
-on multivariate functional data,
-proposed in Capezza et al. (2020) together with the scalar control chart
-and used also to build the
-functional regression control chart proposed in Centofanti et al. (2020)
-(this function is used by \code{\link{regr_cc_fof}}).
+on multivariate functional data, as Capezza et al. (2020)
+for the multivariate functional covariates.
 The training data have already been used to fit the model.
-A tuning data set can be provided that is used to estimate
+An optional tuning data set can be provided to estimate
 the control chart limits.
 A phase II data set contains the observations
-to be monitored with the built control charts.
+to be monitored with the control charts.
 }
 \examples{
 library(funcharts)
@@ -135,9 +157,7 @@ mfdobj_x1 <- mfdobj_x[1:100]
 mfdobj_x_tuning <- mfdobj_x[101:200]
 mfdobj_x2 <- mfdobj_x[201:220]
 pca <- pca_mfd(mfdobj_x1)
-components <- 1:which(cumsum(pca$varprop) >= .90)[1]
 cclist <- control_charts_pca(pca = pca,
-                             components = components,
                              tuning_data = mfdobj_x_tuning,
                              newdata = mfdobj_x2)
 plot_control_charts(cclist)
@@ -151,10 +171,6 @@ based on scalar-on-function regression.
 \emph{Applied Stochastic Models in Business and Industry},
 36(3):477--500.
 <doi:10.1002/asmb.2507>
-
-Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
-Functional Regression Control Chart.
-\emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
 }
 \seealso{
 \code{\link{regr_cc_fof}}

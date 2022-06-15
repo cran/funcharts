@@ -50,6 +50,10 @@
 #' in the \code{raw} argument
 #' containing the functional observations (as in \code{fdnames[[2]]}),
 #' default is NULL.
+#' @param B
+#' A matrix with the inner products of the basis functions.
+#' If NULL, it is calculated from the basis object provided.
+#' Default is NULL.
 #'
 #' @return
 #' A multivariate functional data object
@@ -75,14 +79,14 @@
 #' library(funcharts)
 #' set.seed(0)
 #' nobs <- 5
-#' nbasis <- 4
+#' nbasis <- 10
 #' nvar <- 2
 #' coef <- array(rnorm(nobs * nbasis * nvar), dim = c(nbasis, nobs, nvar))
 #' bs <- create.bspline.basis(rangeval = c(0, 1), nbasis = nbasis)
 #' mfdobj <- mfd(coef = coef, basisobj = bs)
 #' plot_mfd(mfdobj)
 #'
-mfd <- function(coef, basisobj, fdnames = NULL, raw = NULL, id_var = NULL) {
+mfd <- function(coef, basisobj, fdnames = NULL, raw = NULL, id_var = NULL, B = NULL) {
 
   if (is.null(fdnames)) {
     fdnames <- list(
@@ -125,6 +129,11 @@ mfd <- function(coef, basisobj, fdnames = NULL, raw = NULL, id_var = NULL) {
   fdobj <- fd(coef, basisobj, fdnames)
   fdobj$raw <- raw
   fdobj$id_var <- id_var
+  nb <- basisobj$nbasis
+  if (is.null(B)) B <- inprod.bspline(fd(diag(nb), basisobj))
+  if (!is.matrix(B)) stop("B must be a matrix")
+  if (nrow(B) != nb | ncol(B) != nb) stop("B must have the right number of rows and columns")
+  fdobj$basis$B <- B
   class(fdobj) <- c("mfd", "fd")
   fdobj
 }
@@ -151,7 +160,8 @@ is.mfd <- function(mfdobj) if (inherits(mfdobj, "mfd")) TRUE else FALSE
 #' @param nobs Number of functional observations to be simulated.
 #' @param nbasis Number of basis functions.
 #' @param nvar Number of functional covariates.
-#' @param seed Set seed for reproducibility.
+#' @param seed Deprecated: use \code{set.seed()} before calling
+#' the function for reproducibility.
 #'
 #' @return
 #' A simulated object of class `mfd`.
@@ -161,10 +171,14 @@ is.mfd <- function(mfdobj) if (inherits(mfdobj, "mfd")) TRUE else FALSE
 #' library(funcharts)
 #' data_sim_mfd()
 data_sim_mfd <- function(nobs = 5,
-                         nbasis = 4,
+                         nbasis = 5,
                          nvar = 2,
-                         seed = 0) {
-  set.seed(seed)
+                         seed) {
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+                   "please use set.seed() before calling the function instead."),
+            call. = FALSE)
+  }
   coef <- array(stats::rnorm(nobs * nbasis * nvar),
                 dim = c(nbasis, nobs, nvar))
   bs <- create.bspline.basis(rangeval = c(0, 1), nbasis = nbasis)
@@ -261,7 +275,7 @@ data_sim_mfd <- function(nobs = 5,
     }
 
   mfd(coef = coefs, basisobj = mfdobj$basis, fdnames = fdnames,
-      raw = raw_filtered, id_var = id_var)
+      raw = raw_filtered, id_var = id_var, B = mfdobj$basis$B)
 }
 
 #' Inner products of functional data contained in \code{mfd} objects.
@@ -295,8 +309,9 @@ data_sim_mfd <- function(nobs = 5,
 #' @export
 #' @examples
 #' library(funcharts)
-#' mfdobj1 <- data_sim_mfd(seed = 123)
-#' mfdobj2 <- data_sim_mfd(seed = 987)
+#' set.seed(123)
+#' mfdobj1 <- data_sim_mfd()
+#' mfdobj2 <- data_sim_mfd()
 #' inprod_mfd(mfdobj1)
 #' inprod_mfd(mfdobj1, mfdobj2)
 inprod_mfd <- function(mfdobj1, mfdobj2 = NULL) {
@@ -328,7 +343,12 @@ inprod_mfd <- function(mfdobj1, mfdobj2 = NULL) {
   inprods[] <- sapply(1:n_var, function(jj) {
     mfdobj1_jj <- fd(mfdobj1$coefs[, , jj], bs1)
     mfdobj2_jj <- fd(mfdobj2$coefs[, , jj], bs2)
-    inprod(mfdobj1_jj, mfdobj2_jj)
+    if (identical(bs1, bs2)) {
+      out <- as.matrix(t(mfdobj1_jj$coef) %*% bs1$B %*% mfdobj2_jj$coef)
+    } else {
+      out <- inprod(mfdobj1_jj, mfdobj2_jj)
+    }
+    out
   })
 
   inprods
@@ -416,22 +436,32 @@ inprod_mfd_diag <- function(mfdobj1, mfdobj2 = NULL) {
     }
   }
 
-  inprods <- sapply(1:nvar1, function(jj) {
-    fdobj1_jj <- fd(matrix(mfdobj1$coefs[, , jj],
-                           nrow = dim(mfdobj1$coefs)[1],
-                           ncol = dim(mfdobj1$coefs)[2]),
-                    mfdobj1$basis)
-    if (is.null(mfdobj2)) {
-      out <- inprod_fd_diag_single(fdobj1_jj)
-    } else {
-      fdobj2_jj <- fd(matrix(mfdobj2$coefs[, , jj],
-                             nrow = dim(mfdobj2$coefs)[1],
-                             ncol = dim(mfdobj2$coefs)[2]),
-                      mfdobj2$basis)
-      out <- inprod_fd_diag_single(fdobj1_jj, fdobj2_jj)
-    }
-    out
-  })
+  if (is.null(mfdobj2)) mfdobj2 <- mfdobj1
+
+  if (identical(mfdobj1$basis, mfdobj2$basis)) {
+    inprods <- sapply(1:nvar1, function(jj) {
+        C1jj <- mfdobj1$coefs[, , jj]
+        C2jj <- mfdobj2$coefs[, , jj]
+        rowSums(as.matrix(t(C1jj) %*% mfdobj1$basis$B * t(C2jj)))
+    })
+  } else {
+    inprods <- sapply(1:nvar1, function(jj) {
+
+      fdobj1_jj <- fd(matrix(mfdobj1$coefs[, , jj],
+                             nrow = dim(mfdobj1$coefs)[1],
+                             ncol = dim(mfdobj1$coefs)[2]),
+                      mfdobj1$basis)
+      if (is.null(mfdobj2)) {
+        out <- inprod_fd_diag_single(fdobj1_jj)
+      } else {
+        fdobj2_jj <- fd(matrix(mfdobj2$coefs[, , jj],
+                               nrow = dim(mfdobj2$coefs)[1],
+                               ncol = dim(mfdobj2$coefs)[2]),
+                        mfdobj2$basis)
+        out <- inprod_fd_diag_single(fdobj1_jj, fdobj2_jj)
+      }
+    })
+  }
 
   if (nobs1 == 1) inprods <- matrix(inprods, nrow = 1)
   inprods
@@ -822,8 +852,7 @@ get_mfd_df <- function(dt,
 #' the grid of values over which the optimal smoothing parameter is
 #' searched. Default value is \code{10^seq(-10,1,l=20)}.
 #' @param ncores
-#' If you want parallelization, give the number of cores/threads
-#' to be used when doing GCV separately on all observations.
+#' Deprecated.
 #'
 #'
 #' @details
@@ -869,6 +898,9 @@ get_mfd_list <- function(data_list,
                          lambda_grid = 10^seq(-10, 1, length.out = 10),
                          ncores = 1) {
 
+  if (!missing(ncores)) {
+    warning("argument ncores is deprecated.", call. = FALSE)
+  }
   if (!(is.list(data_list))) {
     stop("data_list must be a list of matrices")
   }
@@ -887,44 +919,14 @@ get_mfd_list <- function(data_list,
       ncol(data_list[[1]])))
   }
 
-  if (is.null(grid)) grid <- seq(0, 1, l = n_args)
-  domain <- range(grid)
-  bs <- create.bspline.basis(domain, n_basis)
+  data_array <- simplify2array(data_list)
+  aperm(data_array, c(2, 1, 3))
 
-  variables <- names(data_list)
-  n_var <- length(variables)
-
-  ids <- rownames(data_list[[1]])
-  if (is.null(ids)) ids <- 1:nrow(data_list[[1]])
-  n_obs <- length(ids)
-
-  lambda_search <- if (!is.null(lambda)) lambda else lambda_grid
-  n_lam <- length(lambda_search)
-  ncores <- min(ncores, n_obs)
-
-
-  df <- cbind(
-    data.frame(arg = rep(grid, n_obs)),
-    data.frame(id = rep(ids, each = n_args)),
-    lapply(seq_along(data_list), function(ii) {
-      data_list[[ii]] %>%
-        t() %>%
-        as.data.frame() %>%
-        setNames(ids) %>%
-        pivot_longer(everything()) %>%
-        mutate(name = factor(.data$name, levels = ids)) %>%
-        arrange(.data$name) %>%
-        select(.data$value) %>%
-        setNames(variables[ii])
-    }) %>%
-      bind_cols()
-  ) %>%
-    mutate(id = factor(id, levels = ids))
-
-  get_mfd_df(dt = df, domain = domain, arg = "arg", id = "id",
-             variables = variables, n_basis = n_basis,
-             lambda = lambda,
-             ncores = ncores)
+  get_mfd_array(data_array = aperm(data_array, c(2, 1, 3)),
+                grid = grid,
+                n_basis = n_basis,
+                lambda = lambda,
+                lambda_grid = lambda_grid)
 
 }
 
@@ -947,7 +949,7 @@ get_mfd_list <- function(data_list,
 #' @param lambda_grid
 #' See \code{\link{get_mfd_list}}.
 #' @param ncores
-#' See \code{\link{get_mfd_list}}.
+#' Deprecated. See \code{\link{get_mfd_list}}.
 #'
 #' @return
 #' An object of class \code{mfd}.
@@ -970,18 +972,90 @@ get_mfd_array <- function(data_array,
                           lambda = NULL,
                           lambda_grid = 10^seq(- 10, 1, length.out = 10),
                           ncores = 1) {
-
+  if (!missing(ncores)) {
+    warning("argument ncores is deprecated.", call. = FALSE)
+  }
   n_var <- dim(data_array)[3]
-  data_list <- list()
-  for (ii in 1:n_var) data_list[[ii]] <- t(data_array[, , ii])
-  names(data_list) <- dimnames(data_array)[[3]]
-  get_mfd_list(data_list,
-               grid = grid,
-               n_basis = n_basis,
-               lambda = lambda,
-               lambda_grid = lambda_grid,
-               ncores = ncores)
+  n_args <- dim(data_array)[1]
+  if (!is.null(grid) & (length(grid) != n_args)) {
+    stop(paste0(
+      "grid length, ", length(grid),
+      " has not the same length as number of ",
+      "observed data per functional observation, ",
+      dim(data_array)[1]))
+  }
+  if (is.null(grid)) grid <- seq(0, 1, l = n_args)
+  domain <- range(grid)
+  bs <- create.bspline.basis(domain, n_basis)
+
+  variables <- dimnames(data_array)[[3]]
+  ids <- dimnames(data_array)[[2]]
+  if (is.null(ids)) ids <- as.character(1:dim(data_array)[[2]])
+  n_obs <- length(ids)
+
+  lambda_search <- if (!is.null(lambda)) lambda else lambda_grid
+  n_lam <- length(lambda_search)
+
+  coefList <- list()
+  gcv <- array(data = NA, dim = c(n_obs, n_var, n_lam))
+
+  dimnames(gcv)[[1]] <- ids
+  dimnames(gcv)[[2]] <- variables
+  dimnames(gcv)[[3]] <- lambda_search
+  for (h in 1:n_lam) {
+    fdpenalty <- fdPar(bs, 2, lambda_search[h])
+    smoothObj <- smooth.basis(grid, data_array, fdpenalty)
+    cc <- smoothObj$fd$coefs
+    if (n_var == 1) {
+      cc <- array(cc, dim = c(dim(cc)[1], dim(cc)[2], 1))
+    }
+    coefList[[h]] <- cc
+    gcv[, , h] <- smoothObj$gcv
+  }
+
+  # If only NA in a row,
+  # consider as optimal smoothing parameter the first one in the sequence.
+  gcvmin <- apply(gcv, 1:2, function(x) {
+    if(sum(is.na(x)) < n_lam) which.min(x) else 1
+  })
+
+
+  coef <- array(NA, dim = c(n_basis, n_obs, n_var))
+  dimnames(coef)[[1]] <- as.character(bs$names)
+  dimnames(coef)[[2]] <- as.character(ids)
+  dimnames(coef)[[3]] <- as.character(variables)
+  for (ii in 1:n_obs) {
+    for (jj in 1:n_var) {
+      coef[, ii, jj] <- coefList[[gcvmin[ii, jj]]][, ii, jj]
+    }
+  }
+
+  df_raw <- bind_cols(
+    data.frame(id = rep(ids, each = n_args)),
+    data.frame(arg = rep(grid, n_obs)),
+    lapply(1:dim(data_array)[3], function(ii) {
+      data_array[, , ii] %>%
+        as.data.frame() %>%
+        setNames(ids) %>%
+        tidyr::pivot_longer(everything()) %>%
+        mutate(name = factor(.data$name, levels = ids)) %>%
+        arrange(.data$name) %>%
+        dplyr::select(.data$value) %>%
+        setNames(variables[ii])
+    }) %>%
+      bind_cols()
+  ) %>%
+    mutate(id = factor(id, levels = ids))
+
+  fdObj <- mfd(coef = coef,
+               basisobj = bs,
+               fdnames = list("arg", as.character(ids), as.character(variables)),
+               raw = df_raw,
+               id_var = "id")
+  fdObj
+
 }
+
 
 
 #' Convert a \code{fd} object into a Multivariate Functional Data object.
@@ -1000,9 +1074,9 @@ get_mfd_array <- function(data_array,
 #'
 #' @examples
 #' library(funcharts)
-#' fdobj <- fd()
+#' bs <- create.bspline.basis(nbasis = 10)
+#' fdobj <- fd(coef = 1:10, basisobj = bs)
 #' mfdobj <- get_mfd_fd(fdobj)
-#' plot_mfd(mfdobj)
 get_mfd_fd <- function(fdobj) {
 
   if (length(fdobj$fdnames[[1]]) > 1) fdobj$fdnames[[1]] <- "time"
@@ -1033,6 +1107,7 @@ get_mfd_fd <- function(fdobj) {
       dimnames(coefs)[[3]] <- fdobj$fdnames[[3]]
     }
   }
+  bs <- fdobj$basis
   mfd(coefs,
       fdobj$basis,
       fdobj$fdnames)
@@ -1111,17 +1186,15 @@ scale_mfd <- function(mfdobj, center = TRUE, scale = TRUE) {
   } else {
     if (is.logical(center) && center == TRUE) {
       mean_fd <- mean.fd(mfdobj)
-      cen_fd <- center.fd(mfdobj)
-      cen_fd$fdnames <- mfdobj$fdnames
     }
     if (is.fd(center)) {
       mean_fd <- center
-      mean_fd_coefs <- array(
-        mean_fd$coefs[, 1, ], dim = c(dim(mean_fd$coefs)[c(1, 3)], n_obs))
-      mean_fd_coefs <- aperm(mean_fd_coefs, c(1, 3, 2))
-      mean_fd_rep <- fd(mean_fd_coefs, bs, mfdobj$fdnames)
-      cen_fd <- minus.fd(mfdobj, mean_fd_rep)
     }
+    mean_fd_coefs <- array(mean_fd$coefs[, 1, ],
+                           dim = c(dim(mean_fd$coefs)[c(1, 3)], n_obs))
+    mean_fd_coefs <- aperm(mean_fd_coefs, c(1, 3, 2))
+    mean_fd_rep <- fd(mean_fd_coefs, bs, mfdobj$fdnames)
+    cen_fd <- minus.fd(mfdobj, mean_fd_rep)
   }
 
   # Scale
@@ -1203,31 +1276,48 @@ scale_mfd <- function(mfdobj, center = TRUE, scale = TRUE) {
 #' adding \code{center}.
 #' @noRd
 #'
-descale_mfd <- function(scaled_mfd, center, scale) {
+descale_mfd <- function (scaled_mfd, center = FALSE, scale = FALSE) {
+
+  if (!is.mfd(scaled_mfd)) stop("scaled_mfd must be from class mfd")
 
   basis <- scaled_mfd$basis
   nbasis <- basis$nbasis
   nobs <- length(scaled_mfd$fdnames[[2]])
   nvar <- length(scaled_mfd$fdnames[[3]])
 
-  coef_sd_list <- lapply(1:nvar, function(jj) {
-    matrix(scale$coefs[, jj], nrow = nbasis, ncol = nobs)
-  })
-  coef_sd <- simplify2array(coef_sd_list)
-  sd_fd <- fd(coef_sd, scale$basis, scaled_mfd$fdnames)
+  if (is.fd(scale)) {
 
-  coef_mean_list <- lapply(1:nvar, function(jj) {
-    matrix(center$coefs[, 1, jj], nrow = nbasis, ncol = nobs)
-  })
-  coef_mean <- simplify2array(coef_mean_list)
-  mean_fd <- fd(coef_mean, center$basis, scaled_mfd$fdnames)
+    coef_sd_list <- lapply(1:nvar, function(jj) {
+      matrix(scale$coefs[, jj], nrow = nbasis, ncol = nobs)
+    })
+    coef_sd <- simplify2array(coef_sd_list)
+    sd_fd <- fd(coef_sd, scaled_mfd$basis)
+    centered <- times.fd(scaled_mfd, sd_fd, basisobj = basis)
 
-  centered <- times.fd(scaled_mfd, sd_fd, basisobj = basis)
-  descaled <- centered + mean_fd
-  dimnames(descaled$coefs) <- dimnames(scaled_mfd$coefs)
-  descaled$fdnames <- scaled_mfd$fdnames
+  } else {
+    if (is.logical(scale) & !scale & length(scale) == 1) {
+      centered <- scaled_mfd
+    } else {
+      stop("scale must be either an mfd object or FALSE")
+    }
+  }
 
-  mfd(descaled$coefs, descaled$basis, descaled$fdnames)
+  if (is.fd(center)) {
+
+    descaled_mean_list <- lapply(1:nvar, function(jj) {
+      centered$coefs[, , jj] + center$coefs[, 1, jj]
+    })
+    descaled_coef <- simplify2array(descaled_mean_list)
+
+  } else {
+    if (is.logical(center) & !center & length(center) == 1) {
+      descaled_coef <- centered$coef
+    } else {
+      stop("center must be either an mfd object or FALSE")
+    }
+  }
+
+  mfd(descaled_coef, scaled_mfd$basis, scaled_mfd$fdnames, B = scaled_mfd$basis$B)
 }
 
 
@@ -1339,8 +1429,8 @@ tensor_product_mfd <- function(mfdobj1, mfdobj2 = NULL) {
 #'
 #' @examples
 #' library(funcharts)
-#' mfdobj1 <- data_sim_mfd(nvar = 3, seed = 1)
-#' mfdobj2 <- data_sim_mfd(nvar = 2, seed = 2)
+#' mfdobj1 <- data_sim_mfd(nvar = 3)
+#' mfdobj2 <- data_sim_mfd(nvar = 2)
 #' dimnames(mfdobj2$coefs)[[3]] <- mfdobj2$fdnames[[3]] <- c("var10", "var11")
 #'
 #' plot_mfd(mfdobj1)
@@ -1379,7 +1469,8 @@ cbind_mfd <- function(mfdobj1, mfdobj2) {
       fdnames = list(mfdobj1$fdnames[[1]],
                      mfdobj1$fdnames[[2]],
                      c(mfdobj1$fdnames[[3]],
-                       mfdobj2$fdnames[[3]])))
+                       mfdobj2$fdnames[[3]])),
+      B = mfdobj1$basis$B)
 }
 
 
@@ -1400,8 +1491,8 @@ cbind_mfd <- function(mfdobj1, mfdobj2) {
 #'
 #' @examples
 #' library(funcharts)
-#' mfdobj1 <- data_sim_mfd(nvar = 3, seed = 1, nobs = 4)
-#' mfdobj2 <- data_sim_mfd(nvar = 3, seed = 2, nobs = 5)
+#' mfdobj1 <- data_sim_mfd(nvar = 3, nobs = 4)
+#' mfdobj2 <- data_sim_mfd(nvar = 3, nobs = 5)
 #' dimnames(mfdobj2$coefs)[[2]] <-
 #'   mfdobj2$fdnames[[2]] <-
 #'   c("rep11", "rep12", "rep13", "rep14", "rep15")
@@ -1444,10 +1535,9 @@ rbind_mfd <- function(mfdobj1, mfdobj2) {
       fdnames = list(mfdobj1$fdnames[[1]],
                      c(mfdobj1$fdnames[[2]],
                        mfdobj2$fdnames[[2]]),
-                     mfdobj2$fdnames[[3]]))
+                     mfdobj2$fdnames[[3]]),
+      B = mfdobj1$basis$B)
 }
-
-
 
 # Plots -------------------------------------------------------------------
 
@@ -1483,7 +1573,7 @@ mfd_to_df_raw <- function(mfdobj) {
     select(variables, !!id_var, !!arg_var) %>%
     rename(id = !!id_var) %>%
     filter(id %in% !!obs) %>%
-    pivot_longer(variables, names_to = "var") %>%
+    tidyr::pivot_longer(variables, names_to = "var") %>%
     arrange(id, var, !!arg_var) %>%
     drop_na()
 }
@@ -1523,7 +1613,7 @@ mfd_to_df <- function(mfdobj) {
       setNames(id)
     .df[[arg_var]] <- evalarg
     .df$var <- variable
-    pivot_longer(.df, -c(!!arg_var, var), names_to = "id")
+    tidyr::pivot_longer(.df, -c(!!arg_var, var), names_to = "id")
   }) %>%
     bind_rows() %>%
     mutate(var = factor(var, levels = !!variables),
@@ -1680,7 +1770,7 @@ geom_mfd <- function(mapping = NULL,
 #'
 plot_bifd <- function(bifd_obj) {
 
-  if (class(bifd_obj) != "bifd") {
+  if (!inherits(bifd_obj, "bifd")) {
     stop("bifd_obj must be an object of class bifd")
   }
   if (length(dim(bifd_obj$coef)) != 4) {
@@ -1705,7 +1795,7 @@ plot_bifd <- function(bifd_obj) {
         data.frame() %>%
         setNames(t_eval) %>%
         mutate(s = s_eval) %>%
-        pivot_longer(-.data$s, names_to = "t", values_to = "value") %>%
+        tidyr::pivot_longer(-.data$s, names_to = "t", values_to = "value") %>%
         mutate(t = as.numeric(.data$t),
                variable = bifd_obj$bifdnames[[4]][ii])
     }) %>%
@@ -1726,3 +1816,38 @@ plot_bifd <- function(bifd_obj) {
 }
 
 
+#' @noRd
+#'
+project_mfd <- function(X, n_basis) {
+
+  fdnames <- NULL
+  if (is.mfd(X)) {
+    p <- dim(X$coef)[3]
+    bs <- X$basis
+    rb <- bs$rangeval
+    bs_project <- create.bspline.basis(rb, n_basis)
+    xseq <- seq(rb[1], rb[2], l = 300)
+    Xeval <- eval.fd(xseq, X)
+    Xeval <- aperm(Xeval, c(2, 1, 3))
+    fdnames <- X$fdnames
+  }
+  if (is.array(X)) {
+    rb <- c(0, 1)
+    bs_project <- create.bspline.basis(rb, n_basis)
+    xseq <- seq(rb[1], rb[2], l = dim(X)[2])
+    Xeval <- X
+    Xeval <- aperm(Xeval, c(2, 1, 3))
+  }
+  if (is.list(X) & !is.mfd(X)) {
+    rb <- c(0, 1)
+    bs_project <- create.bspline.basis(rb, n_basis)
+    xseq <- seq(rb[1], rb[2], l = ncol(X[[1]]))
+    Xeval <- simplify2array(X)
+    Xeval <- aperm(Xeval, c(2, 1, 3))
+  }
+
+  coefList <- project.basis(Xeval, argvals = xseq, basisobj = bs_project)
+  X_mfd <- mfd(coefList, basisobj = bs_project, fdnames = fdnames)
+  X_mfd
+
+}

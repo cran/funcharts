@@ -55,7 +55,6 @@
 #' generalized cross-validation (GCV) score.
 #'
 #' Default value is "variance".
-#'
 #' @param components
 #' A vector of integers with the components over which
 #' to project the functional covariates.
@@ -167,24 +166,14 @@ sof_pc <- function(y,
   pca <- pca_mfd(mfdobj_x, nharm = nharm)
   scores <- pca$pcscores
 
-  get_press <- function(mod) {
-    sum(mod$residuals ^ 2 / (1 - hatvalues(mod))^2)
-  }
-  get_gcv <- function(mod) {
-    mean(mod$residuals ^ 2 / (1 - mean(hatvalues(mod)))^2)
-  }
-
-  PRESS <- gcv <- numeric(nharm + 1)
-  mod <- lm(y ~ 1)
-  PRESS[1] <- get_press(mod)
-  gcv[1] <- get_gcv(mod)
-
-  for (kk in 1:ncol(scores)) {
-    mod <- lm(y ~ ., data = data.frame(scores[, 1:kk, drop = FALSE], y = y))
-    PRESS[kk + 1] <- get_press(mod)
-    gcv[kk + 1] <- get_gcv(mod)
-  }
-  names(PRESS) <- names(gcv) <- names(mod$coefficients)
+  XtX_diag <- colSums(scores^2)
+  X2 <- scores^2
+  beta_scores <- c(mean(y), crossprod(scores, y) / XtX_diag)
+  yhat <- matrixStats::rowCumsums(t(t(cbind(1, scores)) * beta_scores))
+  res2 <- (y - yhat)^2
+  H <- matrixStats::rowCumsums(cbind(1 / length(y), t(t(scores^2) / XtX_diag)))
+  PRESS <- colSums(res2 / (1 - H)^2)
+  gcv <- colMeans(t(t(res2 / (1 - colMeans(H)^2))))
 
   if (is.null(components)) {
 
@@ -228,7 +217,7 @@ sof_pc <- function(y,
   coefs <- array(coefs, dim = c(n_basis, 1, n_var))
   dimnames(coefs) <- list(bs$names, "beta", variables)
   fdnames <- list(pca$harmonics$fdnames[[1]], "beta", variables)
-  beta_fd <- mfd(coefs, bs, fdnames)
+  beta_fd <- mfd(coefs, bs, fdnames, B = bs$B)
 
   list(mod = mod,
        pca = pca,
@@ -392,7 +381,6 @@ plot_bootstrap_sof_pc <- function(mod, nboot = 25, ncores = 1) {
   nn <- nrow(mod$mod$model)
   components <- mod$components
 
-  set.seed(0)
   single_boot <- function(ii) {
     rows_B <- sample(1:nn, nn, TRUE)
     mod <- sof_pc(mfdobj_x = mod$pca$data[rows_B],
@@ -424,7 +412,8 @@ plot_bootstrap_sof_pc <- function(mod, nboot = 25, ncores = 1) {
     mod$beta_fd$basis,
     list(mod$beta_fd$fdnames[[1]],
          1:nboot,
-         variables))
+         variables),
+    B = mod$beta_fd$basis$B)
   ggplot() +
     geom_mfd(mfdobj = B_mfd, alpha = .3, lwd = .3, col = "darkgray") +
     geom_hline(yintercept = 0, lty = 2) +

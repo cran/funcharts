@@ -2,17 +2,19 @@
 % Please edit documentation in R/real_time_04_phaseII.R
 \name{control_charts_pca_mfd_real_time}
 \alias{control_charts_pca_mfd_real_time}
-\title{Real-time unsupervised multivariate functional control charts}
+\title{Real-time T^2 and SPE control charts for multivariate functional data}
 \usage{
 control_charts_pca_mfd_real_time(
   pca_list,
-  components_list,
+  components_list = NULL,
   mfdobj_x_test,
   mfdobj_x_tuning = NULL,
   alpha = list(T2 = 0.0125, spe = 0.0125),
   limits = "standard",
-  seed = 0,
+  seed,
   nfold = NULL,
+  tot_variance_explained = 0.9,
+  single_min_variance_explained = 0,
   ncores = 1
 )
 }
@@ -53,9 +55,13 @@ Default is NULL.}
 
 \item{limits}{See \code{\link{control_charts_pca}}.}
 
-\item{seed}{See \code{\link{control_charts_pca}}.}
+\item{seed}{Deprecated: See \code{\link{control_charts_pca}}.}
 
 \item{nfold}{See \code{\link{control_charts_pca}}.}
+
+\item{tot_variance_explained}{See \code{\link{control_charts_pca}}.}
+
+\item{single_min_variance_explained}{See \code{\link{control_charts_pca}}.}
 
 \item{ncores}{If you want parallelization, give the number of cores/threads
 to be used when creating objects separately for different instants.}
@@ -86,9 +92,6 @@ mfdobj_x2_list <- get_mfd_list_real_time(air2[c("CO", "temperature")],
                                          lambda = 1e-2,
                                          k_seq = c(0.5, 1))
 pca_list <- pca_mfd_real_time(mfdobj_x1_list)
-components_list <- lapply(pca_list, function(x) {
-  sum(cumsum(x$varprop) <= .8)
-})
 
 cclist <- control_charts_pca_mfd_real_time(
   pca_list = pca_list,

@@ -1,4 +1,4 @@
-#' Real-time unsupervised multivariate functional control charts
+#' Real-time T^2 and SPE control charts for multivariate functional data
 #'
 #' This function produces a list of data frames,
 #' each of them is produced by \code{\link{control_charts_pca}}
@@ -43,8 +43,12 @@
 #' @param limits
 #' See \code{\link{control_charts_pca}}.
 #' @param seed
-#' See \code{\link{control_charts_pca}}.
+#' Deprecated: See \code{\link{control_charts_pca}}.
 #' @param nfold
+#' See \code{\link{control_charts_pca}}.
+#' @param single_min_variance_explained
+#' See \code{\link{control_charts_pca}}.
+#' @param tot_variance_explained
 #' See \code{\link{control_charts_pca}}.
 #' @param ncores
 #' If you want parallelization, give the number of cores/threads
@@ -72,9 +76,6 @@
 #'                                          lambda = 1e-2,
 #'                                          k_seq = c(0.5, 1))
 #' pca_list <- pca_mfd_real_time(mfdobj_x1_list)
-#' components_list <- lapply(pca_list, function(x) {
-#'   sum(cumsum(x$varprop) <= .8)
-#' })
 #'
 #' cclist <- control_charts_pca_mfd_real_time(
 #'   pca_list = pca_list,
@@ -83,21 +84,33 @@
 #' plot_control_charts_real_time(cclist, 1)
 #'
 control_charts_pca_mfd_real_time <- function(pca_list,
-                                             components_list,
+                                             components_list = NULL,
                                              mfdobj_x_test,
                                              mfdobj_x_tuning = NULL,
                                              alpha = list(T2 = .0125,
                                                           spe = .0125),
                                              limits = "standard",
-                                             seed = 0,
+                                             seed,
                                              nfold = NULL,
+                                             tot_variance_explained = 0.9,
+                                             single_min_variance_explained = 0,
                                              ncores = 1) {
+
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+                   "please use set.seed() before calling the function instead."),
+            call. = FALSE)
+  }
 
   if (is.null(mfdobj_x_tuning)) {
     mfdobj_x_tuning <- lapply(pca_list, function(pca_ii) pca_ii$data)
   }
 
   kk_seq <- as.numeric(names(pca_list))
+
+  if (is.null(components_list)) {
+    components_list <- vector("list", length(kk_seq))
+  }
 
   single_k <- function(ii) {
 
@@ -108,9 +121,10 @@ control_charts_pca_mfd_real_time <- function(pca_list,
       newdata = mfdobj_x_test[[ii]],
       alpha = alpha,
       limits = limits,
-      seed = seed,
       nfold = nfold,
-      ncores = 1
+      ncores = 1,
+      tot_variance_explained = tot_variance_explained,
+      single_min_variance_explained = single_min_variance_explained
     )
 
     cclist_kk$arg <- pca_list[[ii]]$data$fdnames[[1]]
@@ -138,16 +152,16 @@ control_charts_pca_mfd_real_time <- function(pca_list,
                       "mfdobj_x_tuning",
                       "alpha",
                       "limits",
-                      "seed",
                       "nfold",
-                      "kk_seq"),
+                      "kk_seq",
+                      "tot_variance_explained",
+                      "single_min_variance_explained"),
                     envir = environment())
       control_charts_out <- parLapply(cl, seq_along(pca_list), single_k)
       stopCluster(cl)
     }
   }
-  control_charts_out %>%
-    bind_rows()
+  bind_rows(control_charts_out)
 
 }
 
@@ -157,10 +171,9 @@ control_charts_pca_mfd_real_time <- function(pca_list,
 #'
 #' This function produces a list of data frames,
 #' each of them is produced by \code{\link{control_charts_sof_pc}}
-#' and is needed to plot control charts for monitoring
-#' a scalar response variable and
-#' multivariate functional covariates
-#' each evolving up to an intermediate domain point.
+#' and is needed to plot control charts for monitoring in real time
+#' a scalar quality characteristic adjusted for
+#' by the effect of multivariate functional covariates.
 #'
 #' @param mod_list
 #' A list of lists produced by \code{\link{sof_pc_real_time}},
@@ -198,7 +211,7 @@ control_charts_pca_mfd_real_time <- function(pca_list,
 #' @param limits
 #' See \code{\link{control_charts_sof_pc}}.
 #' @param seed
-#' See \code{\link{control_charts_sof_pc}}.
+#' Deprecated: see \code{\link{control_charts_sof_pc}}.
 #' @param nfold
 #' See \code{\link{control_charts_sof_pc}}.
 #' @param ncores
@@ -244,9 +257,15 @@ control_charts_sof_pc_real_time <- function(mod_list,
                                               spe = .0125,
                                               y = .025),
                                             limits = "standard",
-                                            seed = 0,
+                                            seed,
                                             nfold = NULL,
                                             ncores = 1) {
+
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+                   "please use set.seed() before calling the function instead."),
+            call. = FALSE)
+  }
 
   if (is.null(mfdobj_x_tuning)) {
     mfdobj_x_tuning <- lapply(mod_list, function(mod_ii) mod_ii$pca$data)
@@ -263,7 +282,6 @@ control_charts_sof_pc_real_time <- function(mod_list,
       mfdobj_x_tuning = mfdobj_x_tuning[[ii]],
       alpha = alpha,
       limits = limits,
-      seed = seed,
       nfold = nfold,
       ncores = 1
     )
@@ -293,7 +311,6 @@ control_charts_sof_pc_real_time <- function(mod_list,
                       "mfdobj_x_tuning",
                       "alpha",
                       "limits",
-                      "seed",
                       "nfold",
                       "kk_seq"),
                     envir = environment())
@@ -312,10 +329,9 @@ control_charts_sof_pc_real_time <- function(mod_list,
 #'
 #' This function produces a list of data frames,
 #' each of them is produced by \code{\link{regr_cc_fof}}
-#' and is needed to plot control charts for monitoring
-#' a functional response variable and
-#' multivariate functional covariates
-#' each evolving up to an intermediate domain point.
+#' and is needed to plot control charts for monitoring in real time
+#' a functional quality characteristic adjusted for
+#' by the effect of multivariate functional covariates.
 #'
 #' @param mod_list
 #' A list of lists produced by \code{\link{fof_pc_real_time}},
@@ -421,19 +437,19 @@ regr_cc_fof_real_time <- function(mod_list,
 
   kk_seq <- as.numeric(names(mod_list))
 
-  single_k <- function(ii) {
+  if (is.null(mfdobj_y_tuning_list) | is.null(mfdobj_x_tuning_list)) {
+    mfdobj_y_tuning_list <- lapply(mod_list, function(mod_ii) mod_ii$pca_y$data)
+    mfdobj_x_tuning_list <- lapply(mod_list, function(mod_ii) mod_ii$pca_x$data)
+  }
 
-    if (is.null(mfdobj_y_tuning_list) | is.null(mfdobj_x_tuning_list)) {
-      mfdobj_y_tuning_list_ii <- mod_list[[ii]]$pca_y$data
-      mfdobj_x_tuning_list_ii <- mod_list[[ii]]$pca_x$data
-    }
+  single_k <- function(ii) {
 
     regr_cc_fof_kk <- regr_cc_fof(
       object = mod_list[[ii]],
       mfdobj_y_new = mfdobj_y_new_list[[ii]],
       mfdobj_x_new = mfdobj_x_new_list[[ii]],
-      mfdobj_y_tuning = mfdobj_y_tuning_list_ii,
-      mfdobj_x_tuning = mfdobj_x_tuning_list_ii,
+      mfdobj_y_tuning = mfdobj_y_tuning_list[[ii]],
+      mfdobj_x_tuning = mfdobj_x_tuning_list[[ii]],
       alpha = alpha
     )
 
@@ -568,16 +584,16 @@ plot_control_charts_real_time <- function(cclist, id_num) {
 
     plot_list$p_hot <- df_hot_plot %>%
       rename(T2 = .data$statistic) %>%
-      pivot_longer(cols = c(.data$T2, .data$UCL),
+      tidyr::pivot_longer(cols = c(.data$T2, .data$UCL),
                    names_to = "line_type") %>%
       mutate(
         line_type = factor(
           x = .data$line_type,
-          levels = c("UCL", "T2", "LCL")),
+          levels = c("UCL", "T2")),
         group = paste0(.data$group, .data$line_type),
         ooc = case_when(
           line_type == "T2" ~ ooc,
-          line_type %in% c("UCL", "LCL") ~ FALSE
+          line_type %in% c("UCL") ~ FALSE
         )) %>%
       ggplot() +
       geom_line(aes(x     = .data$kk,
@@ -585,9 +601,9 @@ plot_control_charts_real_time <- function(cclist, id_num) {
                     lty   = .data$line_type,
                     col   = .data$ooc,
                     group = .data$group)) +
-      scale_linetype_manual(values = c("T2" = 1, "UCL" = 2, "LCL" = 2)) +
+      scale_linetype_manual(values = c("T2" = 1, "UCL" = 2)) +
       scale_colour_manual(values = c("FALSE" = "black", "TRUE" = "tomato1")) +
-      guides(colour = FALSE) +
+      guides(colour = "none") +
       geom_blank(aes(y = 0)) +
       scale_x_continuous(limits = c(xmin, xmax),
                          breaks = x_axis_tick,
@@ -623,16 +639,16 @@ plot_control_charts_real_time <- function(cclist, id_num) {
 
     plot_list$p_spe <- df_spe_plot %>%
       rename(SPE = .data$statistic) %>%
-      pivot_longer(cols = c(.data$SPE, .data$UCL),
+      tidyr::pivot_longer(cols = c(.data$SPE, .data$UCL),
                    names_to = "line_type") %>%
       mutate(
         line_type = factor(
           x = .data$line_type,
-          levels = c("UCL", "SPE", "LCL")),
+          levels = c("UCL", "SPE")),
         group = paste0(.data$group, .data$line_type),
         ooc = case_when(
           line_type == "SPE" ~ ooc,
-          line_type %in% c("UCL", "LCL") ~ FALSE
+          line_type %in% c("UCL") ~ FALSE
         )) %>%
       ggplot() +
       geom_line(aes(x     = .data$kk,
@@ -640,9 +656,9 @@ plot_control_charts_real_time <- function(cclist, id_num) {
                     lty   = .data$line_type,
                     col   = .data$ooc,
                     group = .data$group)) +
-      scale_linetype_manual(values = c("SPE" = 1, "UCL" = 2, "LCL" = 2)) +
+      scale_linetype_manual(values = c("SPE" = 1, "UCL" = 2)) +
       scale_colour_manual(values = c("FALSE" = "black", "TRUE" = "tomato1")) +
-      guides(colour = FALSE) +
+      guides(colour = "none") +
       geom_blank(aes(y = 0)) +
       scale_x_continuous(limits = c(xmin, xmax),
                          breaks = x_axis_tick,
@@ -698,7 +714,7 @@ plot_control_charts_real_time <- function(cclist, id_num) {
 
     plot_list$p_y <- df_y_plot %>%
       rename(`prediction error [t]` = .data$statistic) %>%
-      pivot_longer(cols = c(.data$`prediction error [t]`, .data$UCL, .data$LCL),
+      tidyr::pivot_longer(cols = c(.data$`prediction error [t]`, .data$UCL, .data$LCL),
                    names_to = "line_type") %>%
       mutate(
         line_type = factor(
@@ -717,7 +733,7 @@ plot_control_charts_real_time <- function(cclist, id_num) {
                     group = .data$group)) +
       scale_linetype_manual(values = c("prediction error [t]" = 1, "UCL" = 2, "LCL" = 2)) +
       scale_colour_manual(values = c("FALSE" = "black", "TRUE" = "tomato1")) +
-      guides(colour = FALSE) +
+      guides(colour = "none") +
       geom_blank(aes(y = 0)) +
       scale_x_continuous(limits = c(xmin, xmax),
                          breaks = x_axis_tick,

@@ -1,17 +1,82 @@
 #' Simulate example data for funcharts
 #'
+#' Function used to simulate three data sets to illustrate the use of \code{funcharts}.
+#' It uses the function \code{\link[funcharts]{simulate_mfd}},
+#' which creates a data set with three functional covariates,
+#' a functional response generated as a function of the three functional covariates,
+#' and a scalar response generated as a function of the three functional covariates.
+#' This function generates three data sets, one for phase I,
+#' one for tuning, i.e.,
+#' to estimate the control chart limits, and one for phase II monitoring.
+#' see also \code{\link[funcharts]{simulate_mfd}}.
+#' @param nobs1
+#' The number of observation to simulate in phase I. Default is 1000.
+#' @param nobs_tun
+#' The number of observation to simulate the tuning data set. Default is 1000.
+#' @param nobs2
+#' The number of observation to simulate in phase II. Default is 60.
+#'
+#' @return
+#' A list with three objects, \code{datI} contains the phase I data,
+#' \code{datI_tun} contains the tuning data,
+#' \code{datII} contains the phase II data.
+#' In the phase II data, the first group of observations are in control,
+#' the second group of observations contains a moderate mean shift,
+#' while the third group of observations contains a severe mean shift.
+#' The shift types are described in the paper from Centofanti et al. (2021),
+#' @export
+#'
+#' @references
+#'
+#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
+#' Functional Regression Control Chart.
+#' \emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
+sim_funcharts <- function(nobs1 = 1000, nobs_tun = 1000, nobs2 = 60) {
+
+  datI <- simulate_mfd(nobs = nobs1)
+  datI_tun <- simulate_mfd(nobs = nobs_tun)
+  datII_ic <- simulate_mfd(nobs = nobs2 / 3)
+  datII_oc1 <- simulate_mfd(nobs = nobs2 / 3,
+                            shift_type_x3 = "A",
+                            d_x3 = 20,
+                            d_y_scalar = 1,
+                            shift_type_y = "D",
+                            d_y = 0.5)
+  datII_oc2 <- simulate_mfd(nobs = nobs2 / 3,
+                            shift_type_x3 = "A",
+                            d_x3 = 40,
+                            d_y_scalar = 2,
+                            shift_type_y = "D",
+                            d_y = 1.5)
+  datII <- list()
+  for (ii in 1:4) {
+    datII[[ii]] <- rbind(datII_ic[[ii]], datII_oc1[[ii]], datII_oc2[[ii]])
+    datII[[ii]] <- rbind(datII_ic[[ii]], datII_oc1[[ii]], datII_oc2[[ii]])
+    datII[[ii]] <- rbind(datII_ic[[ii]], datII_oc1[[ii]], datII_oc2[[ii]])
+  }
+  datII[[5]] <- c(datII_ic[[5]],datII_oc1[[5]],datII_oc2[[5]])
+  names(datII) <- names(datI)
+
+  list(datI = datI, datI_tun = datI_tun, datII = datII)
+}
+
+
+
+
+#' Simulate a data set for funcharts
+#'
 #' Function used to simulate a data set to illustrate the use of \code{funcharts}.
 #' It creates a data set with three functional covariates,
 #' a functional response generated as a function of the three functional covariates
 #' through a function-on-function linear model,
 #' and a scalar response generated as a function of the three functional covariates
 #' through a scalar-on-function linear model.
-#' This function covers the simulation study in Centofanti et al. (2020)
+#' This function covers the simulation study in Centofanti et al. (2021)
 #' for the function-on-function case and also simulates data in a similar way
 #' for the scalar response case.
 #' In the default case, the function generates in-control data.
 #' Additional arguments can be used to generate additional data that are out of control,
-#' with mean shifts according to the scenarios proposed by Centofanti et al. (2020).
+#' with mean shifts according to the scenarios proposed by Centofanti et al. (2021).
 #' Each simulated observation of a functional variable consists of
 #' a vector of 150 discrete points, equally spaced between 0 and 1, generated with noise.
 #' @param nobs
@@ -21,30 +86,31 @@
 #' In both the scalar and functional response cases, only three values are allowed,
 #' i.e. 0.97, 0.86, 0.74.
 #' Default is 0.97.
-#' @param seed Set seed for reproducibility. Default is 0.
+#' @param seed Deprecated: use \code{set.seed()} before calling
+#' the function for reproducibility.
 #' @param shift_type_y
 #' The shift type for the functional response.
 #' There are five possibilities: "0" if there is no shift,
 #' "A", "B", "C" or "D" for the corresponding shift types
-#' shown in Centofanti et al. (2020).
+#' shown in Centofanti et al. (2021).
 #' Default is "0".
 #' @param shift_type_x1
 #' #' The shift type for the first functional covariate.
 #' There are five possibilities: "0" if there is no shift,
 #' "A", "B", "C" or "D" for the corresponding shift types
-#' shown in Centofanti et al. (2020).
+#' shown in Centofanti et al. (2021).
 #' Default is "0".
 #' @param shift_type_x2
 #' #' The shift type for the second functional covariate.
 #' #' There are five possibilities: "0" if there is no shift,
 #' "A", "B", "C" or "D" for the corresponding shift types
-#' shown in Centofanti et al. (2020).
+#' shown in Centofanti et al. (2021).
 #' Default is "0".
 #' @param shift_type_x3
 #' #' The shift type for the third functional covariate.
 #' #' There are five possibilities: "0" if there is no shift,
 #' "A", "B", "C" or "D" for the corresponding shift types
-#' shown in Centofanti et al. (2020).
+#' shown in Centofanti et al. (2021).
 #' Default is "0".
 #' @param d_y
 #' A number indicating the severity of the shift type for the functional response.
@@ -80,7 +146,7 @@
 #' * \code{y_scalar} is a vector of length 150 with the simulated observations of the scalar response
 #'
 #' * \code{beta_fof}, if \code{save_beta = TRUE}, is a list of three 500x500 matrices
-#' with the discretized functional coefficients of the funciton-on-function regression
+#' with the discretized functional coefficients of the function-on-function regression
 #'
 #' * \code{beta_sof}, if \code{save_beta = TRUE}, is a list of three vectors of length 500
 #' with the discretized functional coefficients of the scalar-on-function regression
@@ -90,12 +156,12 @@
 #'
 #' @references
 #'
-#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
+#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
 #' Functional Regression Control Chart.
-#' \emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
+#' \emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
 simulate_mfd <- function(nobs = 1000,
                          R2 = 0.97,
-                         seed = 0,
+                         seed,
                          shift_type_y = "0",
                          shift_type_x1 = "0",
                          shift_type_x2 = "0",
@@ -106,6 +172,12 @@ simulate_mfd <- function(nobs = 1000,
                          d_x3 = 0,
                          d_y_scalar = 0,
                          save_beta = FALSE) {
+
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+            "please use set.seed() before calling simulate_mfd() instead."),
+            call. = FALSE)
+  }
 
   if (!(R2 %in% c(0.97, 0.86, 0.74))) {
     stop("only 0.97, 0.86, 0.74 values allowed for R2.")
@@ -161,8 +233,6 @@ simulate_mfd <- function(nobs = 1000,
   meig2 <- e$vectors[501:1000, 1:n_comp_x] / sqrt(w)
   meig3 <- e$vectors[1001:1500, 1:n_comp_x] / sqrt(w)
   meigenvalues <- e$values[1:n_comp_x] * w
-
-  set.seed(seed)
 
   b_perfect <- sqrt(eigy$values / meigenvalues[1:10])
   b_perfect_sof <- rep(1 / sqrt(sum(meigenvalues[1:10])), 10)

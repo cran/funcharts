@@ -11,7 +11,7 @@ control_charts_sof_pc_real_time(
   mfdobj_x_tuning = NULL,
   alpha = list(T2 = 0.0125, spe = 0.0125, y = 0.025),
   limits = "standard",
-  seed = 0,
+  seed,
   nfold = NULL,
   ncores = 1
 )
@@ -52,7 +52,7 @@ Default is NULL.}
 
 \item{limits}{See \code{\link{control_charts_sof_pc}}.}
 
-\item{seed}{See \code{\link{control_charts_sof_pc}}.}
+\item{seed}{Deprecated: see \code{\link{control_charts_sof_pc}}.}
 
 \item{nfold}{See \code{\link{control_charts_sof_pc}}.}
 
@@ -67,10 +67,9 @@ corresponding to a given instant.
 \description{
 This function produces a list of data frames,
 each of them is produced by \code{\link{control_charts_sof_pc}}
-and is needed to plot control charts for monitoring
-a scalar response variable and
-multivariate functional covariates
-each evolving up to an intermediate domain point.
+and is needed to plot control charts for monitoring in real time
+a scalar quality characteristic adjusted for
+by the effect of multivariate functional covariates.
 }
 \examples{
 library(funcharts)

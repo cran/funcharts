@@ -11,7 +11,7 @@
 #' covariate scores.
 #' Both functional covariates and response are standardized before
 #' the regression.
-#' See Centofanti et al. (2020) for additional details.
+#' See Centofanti et al. (2021) for additional details.
 #'
 #' @param mfdobj_y
 #' A multivariate functional data object of class
@@ -59,12 +59,12 @@
 #' @param type_residuals
 #' A character value that can be
 #' "standard" or "studentized".
-#' If "standard", the MFPCA on functional residuals calculated on
+#' If "standard", the MFPCA on functional residuals is calculated on
 #' the standardized covariates and response.
 #' If "studentized", the MFPCA on studentized version of
-#' the functional residuals calculated on the
+#' the functional residuals is calculated on the
 #' non-standardized covariates and response.
-#' See Centofanti et al. (2020) for additional details.
+#' See Centofanti et al. (2021) for additional details.
 #'
 #' @return
 #' A list containing the following arguments:
@@ -134,9 +134,9 @@
 #' @export
 #'
 #' @references
-#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
+#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
 #' Functional Regression Control Chart.
-#' \emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
+#' \emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
 #'
 #' @examples
 #' library(funcharts)
@@ -261,23 +261,28 @@ fof_pc <- function(mfdobj_y,
   B <- mod$coefficients
   B <- as.matrix(B)
 
-  beta_coef_dim <- c(x_pca$harmonics$basis$nbasis,
-                     y_pca$harmonics$basis$nbasis,
-                     1, n_var_x * n_var_y)
+  Gx <- x_pca$harmonics$coefs[, components_x, , drop = FALSE]
+  Gx <- do.call(rbind, lapply(1:n_var_x, function(jj) matrix(Gx[, , jj], nrow = dim(Gx)[1])))
+  Gy <- y_pca$harmonics$coefs[, components_y, , drop = FALSE]
+  Gy <- do.call(rbind, lapply(1:n_var_y, function(jj) matrix(Gy[, , jj], nrow = dim(Gy)[1])))
+  beta_coefs <- Gx %*% B %*% t(Gy)
+  kx <- x_pca$harmonics$basis$nbasis
+  ky <- y_pca$harmonics$basis$nbasis
+  beta_coefs <- array(as.numeric(beta_coefs), dim = c(kx, n_var_x, ky, n_var_y))
+  beta_coefs <- aperm(beta_coefs, perm = c(1, 3, 2, 4))
+  beta_coefs <- array(as.numeric(beta_coefs), dim = c(kx, ky, 1, n_var_x * n_var_y))
 
-  beta_coefs <- array(0, dim = beta_coef_dim)
-  for (kk_xx in components_x) {
-    for (kk_yy in components_y) {
-      phi_st <- tensor_product_mfd(
-        x_pca$harmonics[kk_xx],
-        y_pca$harmonics[kk_yy])
-      beta_coefs <- beta_coefs + B[kk_xx, kk_yy] * phi_st$coefs
-      }
-    }
+  fdnames <- as.matrix(expand.grid(y_pca$harmonics$fdnames[[3]], x_pca$harmonics$fdnames[[3]]))
+  fdnames <- apply(fdnames, 1, function(x) paste(x, collapse = " vs "))
+
+  bifdnames <- list(x_pca$harmonics$basis$names,
+                    y_pca$harmonics$basis$names,
+                    "",
+                    fdnames)
   beta_fd <- bifd(beta_coefs,
                   x_pca$harmonics$basis,
                   y_pca$harmonics$basis,
-                  phi_st$bifdnames)
+                  bifdnames)
 
   y_scores_hat <- predict(mod)
 
@@ -297,18 +302,19 @@ fof_pc <- function(mfdobj_y,
     scale = attr(y_z, "scaled:scale"))
 
   if (type_residuals == "standard") {
-    res <- mfd(y_z$coefs - y_hat_z$coefs, mfdobj_y$basis, mfdobj_y$fdnames)
+    res <- mfd(y_z$coefs - y_hat_z$coefs, mfdobj_y$basis, mfdobj_y$fdnames, B = mfdobj_y$basis$B)
     res_pca <- pca_mfd(res, scale = FALSE, nharm = nharm_res)
   }
 
   get_studentized_residuals <- NULL
 
-  res_original <- mfd(mfdobj_y$coefs - y_hat$coefs, basis_y, mfdobj_y$fdnames)
+  res_original <- mfd(mfdobj_y$coefs - y_hat$coefs, basis_y, mfdobj_y$fdnames, B = mfdobj_y$basis$B)
 
   if (type_residuals == "studentized") {
 
     domain <- res_original$basis$rangeval
-    bs <- create.bspline.basis(domain, 200)
+    bs <- create.bspline.basis(domain, 100)
+    bs$B <- inprod.bspline(fd(diag(1, bs$nbasis), bs))
 
     sd_res <- sd.fd(res_original)
     var_res <- times.fd(sd_res, sd_res, bs)
@@ -321,17 +327,15 @@ fof_pc <- function(mfdobj_y,
 
     # `psp_coef` is the vector of basis coefficients of the
     # function psi_M(t)' sigma_M psi_M(t) in Eq. (36).
-    psp_coef <- numeric(bs$nbasis)
-    for (ii in 1:ncomponents_y) {
-      for (jj in ii:ncomponents_y) {
-        prod <- times.fd(
-          e1 = y_pca$harmonics[ii],
-          e2 = y_pca$harmonics[jj],
-          basisobj = bs)$coef[, 1, 1]
-        if (jj > ii) prod <- 2 * prod
-        psp_coef <- psp_coef + sigma_M[ii, jj] * prod
-      }
-    }
+    xseq <- seq(bs$rangeval[1], bs$rangeval[2], length.out = 1000)
+    y_pca_eval <- eval.fd(xseq, y_pca$harmonics)
+    y_pca_coef <- project.basis(y_pca_eval, xseq, bs)
+    G <- as.numeric(y_pca_coef[, 1:ncomponents_y, 1])
+    G <- matrix(G, ncol = ncomponents_y)
+    psp_coef <- G %*% sigma_M %*% t(G)
+    bifd_obj <- bifd(psp_coef, sbasisobj = bs, tbasisobj = bs)
+    psp_eval <- fda::evaldiag.bifd(xseq, bifd_obj)
+    psp_coef <- as.numeric(project.basis(psp_eval, xseq, bs))
 
     get_studentized_residuals <- function(gain, pred_error) {
 
@@ -353,7 +357,8 @@ fof_pc <- function(mfdobj_y,
 
       mfd(array(studentized$coefs, dim = c(dim(studentized$coefs), 1)),
           bs,
-          pred_error$fdnames)
+          pred_error$fdnames,
+          B = bs$B)
 
     }
 
@@ -434,9 +439,9 @@ fof_pc <- function(mfdobj_y,
 #' @export
 #'
 #' @references
-#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
+#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
 #' Functional Regression Control Chart.
-#' \emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
+#' \emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
 #'
 #' @examples
 #' library(funcharts)
@@ -541,13 +546,15 @@ predict_fof_pc <- function(object,
   pred_error_original_scale <- mfd(
     mfdobj_y_new$coefs - y_hat_new$coefs,
     mfdobj_y_new$basis,
-    mfdobj_y_new$fdnames)
+    mfdobj_y_new$fdnames,
+    B = mfdobj_y_new$basis$B)
 
   if (object$type_residuals == "standard") {
     pred_error <- mfd(
       y_z_new$coefs - y_hat_z_new$coefs,
       mfdobj_y_new$basis,
-      mfdobj_y_new$fdnames)
+      mfdobj_y_new$fdnames,
+      B = mfdobj_y_new$basis$B)
   }
 
   if (object$type_residuals == "studentized") {

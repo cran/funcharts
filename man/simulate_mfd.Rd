@@ -2,12 +2,12 @@
 % Please edit documentation in R/simulate.R
 \name{simulate_mfd}
 \alias{simulate_mfd}
-\title{Simulate example data for funcharts}
+\title{Simulate a data set for funcharts}
 \usage{
 simulate_mfd(
   nobs = 1000,
   R2 = 0.97,
-  seed = 0,
+  seed,
   shift_type_y = "0",
   shift_type_x1 = "0",
   shift_type_x2 = "0",
@@ -28,30 +28,31 @@ In both the scalar and functional response cases, only three values are allowed,
 i.e. 0.97, 0.86, 0.74.
 Default is 0.97.}
 
-\item{seed}{Set seed for reproducibility. Default is 0.}
+\item{seed}{Deprecated: use \code{set.seed()} before calling
+the function for reproducibility.}
 
 \item{shift_type_y}{The shift type for the functional response.
 There are five possibilities: "0" if there is no shift,
 "A", "B", "C" or "D" for the corresponding shift types
-shown in Centofanti et al. (2020).
+shown in Centofanti et al. (2021).
 Default is "0".}
 
 \item{shift_type_x1}{#' The shift type for the first functional covariate.
 There are five possibilities: "0" if there is no shift,
 "A", "B", "C" or "D" for the corresponding shift types
-shown in Centofanti et al. (2020).
+shown in Centofanti et al. (2021).
 Default is "0".}
 
 \item{shift_type_x2}{#' The shift type for the second functional covariate.
 #' There are five possibilities: "0" if there is no shift,
 "A", "B", "C" or "D" for the corresponding shift types
-shown in Centofanti et al. (2020).
+shown in Centofanti et al. (2021).
 Default is "0".}
 
 \item{shift_type_x3}{#' The shift type for the third functional covariate.
 #' There are five possibilities: "0" if there is no shift,
 "A", "B", "C" or "D" for the corresponding shift types
-shown in Centofanti et al. (2020).
+shown in Centofanti et al. (2021).
 Default is "0".}
 
 \item{d_y}{A number indicating the severity of the shift type for the functional response.
@@ -87,7 +88,7 @@ A list with the following elements:
 * \code{y_scalar} is a vector of length 150 with the simulated observations of the scalar response
 
 * \code{beta_fof}, if \code{save_beta = TRUE}, is a list of three 500x500 matrices
-with the discretized functional coefficients of the funciton-on-function regression
+with the discretized functional coefficients of the function-on-function regression
 
 * \code{beta_sof}, if \code{save_beta = TRUE}, is a list of three vectors of length 500
 with the discretized functional coefficients of the scalar-on-function regression
@@ -99,17 +100,17 @@ a functional response generated as a function of the three functional covariates
 through a function-on-function linear model,
 and a scalar response generated as a function of the three functional covariates
 through a scalar-on-function linear model.
-This function covers the simulation study in Centofanti et al. (2020)
+This function covers the simulation study in Centofanti et al. (2021)
 for the function-on-function case and also simulates data in a similar way
 for the scalar response case.
 In the default case, the function generates in-control data.
 Additional arguments can be used to generate additional data that are out of control,
-with mean shifts according to the scenarios proposed by Centofanti et al. (2020).
+with mean shifts according to the scenarios proposed by Centofanti et al. (2021).
 Each simulated observation of a functional variable consists of
 a vector of 150 discrete points, equally spaced between 0 and 1, generated with noise.
 }
 \references{
-Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
+Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
 Functional Regression Control Chart.
-\emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
+\emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
 }

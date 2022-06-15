@@ -5,16 +5,13 @@
 #' control charts
 #' based on multivariate functional principal component analysis
 #' (MFPCA) performed
-#' on multivariate functional data,
-#' proposed in Capezza et al. (2020) together with the scalar control chart
-#' and used also to build the
-#' functional regression control chart proposed in Centofanti et al. (2020)
-#' (this function is used by \code{\link{regr_cc_fof}}).
+#' on multivariate functional data, as Capezza et al. (2020)
+#' for the multivariate functional covariates.
 #' The training data have already been used to fit the model.
-#' A tuning data set can be provided that is used to estimate
+#' An optional tuning data set can be provided to estimate
 #' the control chart limits.
 #' A phase II data set contains the observations
-#' to be monitored with the built control charts.
+#' to be monitored with the control charts.
 #'
 #' @param pca
 #' An object of class \code{pca_mfd}
@@ -23,6 +20,15 @@
 #' @param components
 #' A vector of integers with the components over which
 #' to project the multivariate functional data.
+#' If this is not NULL, the arguments `single_min_variance_explained`
+#' and `tot_variance_explained` are ignored.
+#' If NULL, components are selected such that
+#' the total fraction of variance explained by them
+#' is at least equal to the argument `tot_variance_explained`,
+#' where only components explaining individually a fraction of variance
+#' at least equal to the argument `single_min_variance_explained`
+#' are considered to be retained.
+#' Default is NULL.
 #' @param tuning_data
 #' An object of class \code{mfd} containing
 #' the tuning set of the multivariate functional data, used to estimate the
@@ -41,7 +47,7 @@
 #' Note that at the moment you have to take into account manually
 #' the family-wise error rate and adjust
 #' the two values accordingly. See Capezza et al. (2020) and
-#' Centofanti et al. (2020)
+#' Centofanti et al. (2021)
 #' for additional details. Default value is
 #' \code{list(T2 = 0.025, spe = 0.025)}.
 #' @param limits
@@ -54,7 +60,8 @@
 #' If \code{limits=="cv"},
 #' since the split in the k groups is random,
 #' you can fix a seed to ensure reproducibility.
-#' Otherwise, this argument is ignored.
+#' Deprecated: use \code{set.seed()} before calling
+#' the function for reproducibility.
 #' @param nfold
 #' If \code{limits=="cv"}, this gives the number of groups k
 #' used for k-fold cross-validation.
@@ -67,6 +74,19 @@
 #' in the k groups in parallel,
 #' give the number of cores/threads.
 #' Otherwise, this argument is ignored.
+#' @param single_min_variance_explained
+#' The minimum fraction of variance
+#' that has to be explained
+#' by each multivariate functional principal component
+#' such that it is retained into the MFPCA model.
+#' Default is 0.
+#' @param tot_variance_explained
+#' The minimum fraction of variance
+#' that has to be explained
+#' by the set of multivariate functional principal components
+#' retained into the MFPCA model
+#' fitted on the functional covariates.
+#' Default is 0.9.
 #'
 #' @return
 #' A \code{data.frame} with as many rows as the number of
@@ -107,6 +127,7 @@
 #' @seealso \code{\link{regr_cc_fof}}
 #'
 #' @references
+#'
 #' Capezza C, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
 #' Control charts for
 #' monitoring ship operating conditions and CO2 emissions
@@ -114,10 +135,6 @@
 #' \emph{Applied Stochastic Models in Business and Industry},
 #' 36(3):477--500.
 #' <doi:10.1002/asmb.2507>
-#'
-#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
-#' Functional Regression Control Chart.
-#' \emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
 #'
 #' @examples
 #' library(funcharts)
@@ -135,22 +152,28 @@
 #' mfdobj_x_tuning <- mfdobj_x[101:200]
 #' mfdobj_x2 <- mfdobj_x[201:220]
 #' pca <- pca_mfd(mfdobj_x1)
-#' components <- 1:which(cumsum(pca$varprop) >= .90)[1]
 #' cclist <- control_charts_pca(pca = pca,
-#'                              components = components,
 #'                              tuning_data = mfdobj_x_tuning,
 #'                              newdata = mfdobj_x2)
 #' plot_control_charts(cclist)
 #'
 control_charts_pca <- function(pca,
-                               components,
+                               components = NULL,
                                tuning_data = NULL,
                                newdata,
                                alpha = list(T2 = .025, spe = .025),
                                limits = "standard",
-                               seed = 0,
+                               seed,
                                nfold = 5,
-                               ncores = 1) {
+                               ncores = 1,
+                               tot_variance_explained = 0.9,
+                               single_min_variance_explained = 0) {
+
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+                   "please use set.seed() before calling the function instead."),
+            call. = FALSE)
+  }
 
   if (!is.list(pca)) {
     stop("pca must be a list produced by pca_mfd.")
@@ -163,6 +186,16 @@ control_charts_pca <- function(pca,
     stop("'limits' argument can be only 'standard' or 'cv'.")
   }
 
+  if (is.null(components)) {
+    components_enough_var <- cumsum(pca$varprop) > tot_variance_explained
+    if (sum(components_enough_var) == 0)
+      ncomponents <- length(pca$varprop) else
+        ncomponents <- which(cumsum(pca$varprop) > tot_variance_explained)[1]
+      components <- 1:ncomponents
+      components <-
+        which(pca$varprop[1:ncomponents] > single_min_variance_explained)
+  }
+
   if (limits == "standard") lim <- calculate_limits(
     pca = pca,
     tuning_data = tuning_data,
@@ -172,7 +205,6 @@ control_charts_pca <- function(pca,
     pca = pca,
     components = components,
     alpha = alpha,
-    seed = seed,
     nfold = nfold,
     ncores = ncores)
 
@@ -324,16 +356,15 @@ regr_cc_sof <- function(object,
 }
 
 
-#' Control charts for monitoring multivariate functional covariates
-#' and a scalar response
+#' Control charts for monitoring a scalar quality characteristic adjusted for
+#' by the effect of multivariate functional covariates
 #'
 #' @description
 #' This function builds a data frame needed to
 #' plot control charts
-#' for monitoring a multivariate functional covariates based on
-#' multivariate functional principal component analysis (MFPCA) and
-#' a related scalar response variable using the
-#' scalar-on-function regression control chart,
+#' for monitoring a monitoring a scalar quality characteristic adjusted for
+#' the effect of multivariate functional covariates based on
+#' scalar-on-function regression,
 #' as proposed in Capezza et al. (2020).
 #'
 #' In particular, this function provides:
@@ -349,10 +380,10 @@ regr_cc_sof <- function(object,
 #' for the scalar regression control chart.
 #'
 #' The training data have already been used to fit the model.
-#' A tuning data set can be provided that is used to estimate
+#' An optional tuning data set can be provided that is used to estimate
 #' the control chart limits.
 #' A phase II data set contains the observations to be monitored
-#' with the built control charts.
+#' with the control charts.
 #'
 #'
 #' @param mod
@@ -395,7 +426,8 @@ regr_cc_sof <- function(object,
 #' If \code{limits=="cv"},
 #' since the split in the k groups is random,
 #' you can fix a seed to ensure reproducibility.
-#' Otherwise, this argument is ignored.
+#' Deprecated: use \code{set.seed()} before calling
+#' the function for reproducibility.
 #' @param nfold
 #' If \code{limits=="cv"}, this gives the number of groups k
 #' used for k-fold cross-validation.
@@ -494,9 +526,15 @@ control_charts_sof_pc <- function(mod,
                                     spe = .0125,
                                     y   = .025),
                                   limits = "standard",
-                                  seed = 0,
+                                  seed,
                                   nfold = NULL,
                                   ncores = 1) {
+
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+                   "please use set.seed() before calling the function instead."),
+            call. = FALSE)
+  }
 
   if (!is.list(mod)) {
     stop("object must be a list produced by sof_pc.")
@@ -527,7 +565,6 @@ control_charts_sof_pc <- function(mod,
                             tuning_data = mfdobj_x_tuning,
                             alpha = alpha,
                             limits = limits,
-                            seed = seed,
                             nfold = nfold,
                             ncores = ncores)
   y <- regr_cc_sof(object = mod,
@@ -544,13 +581,16 @@ control_charts_sof_pc <- function(mod,
 #'
 #' It builds a data frame needed to plot the
 #' Functional Regression Control Chart
-#' introduced in Centofanti et al. (2020), based on a fitted
+#' introduced in Centofanti et al. (2021),
+#' for monitoring a functional quality characteristic adjusted for
+#' by the effect of multivariate functional covariates,
+#' based on a fitted
 #' function-on-function linear regression model.
 #' The training data have already been used to fit the model.
-#' A tuning data set can be provided that is used to estimate
+#' An optional tuning data set can be provided that is used to estimate
 #' the control chart limits.
 #' A phase II data set contains the observations to be monitored
-#' with the built control charts.
+#' with the control charts.
 #'
 #' @param object
 #' A list obtained as output from \code{fof_pc},
@@ -587,7 +627,7 @@ control_charts_sof_pc <- function(mod,
 #' the desired Type I error probability of the corresponding control chart.
 #' Note that at the moment you have to take into account manually
 #' the family-wise error rate and adjust
-#' the two values accordingly. See Centofanti et al. (2020)
+#' the two values accordingly. See Centofanti et al. (2021)
 #' for additional details.
 #' Default value is \code{list(T2 = 0.025, spe = 0.025)}.
 #'
@@ -600,9 +640,9 @@ control_charts_sof_pc <- function(mod,
 #' @seealso \code{\link{control_charts_pca}}
 #'
 #' @references
-#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
+#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
 #' Functional Regression Control Chart.
-#' \emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
+#' \emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
 #'
 #' @examples
 #' library(funcharts)

@@ -24,10 +24,12 @@ test_that("domain must be a vector of 2 numbers", {
 })
 
 test_that("get_mfd_fd correctly converts fd objects", {
-  expect_equal(get_mfd_fd(fd()),
-               mfd(coef = array(c(0, 0), dim = c(2, 1, 1)),
-                   basisobj = fd()$basis,
-                   fdnames = fd()$fdnames))
+  bs <- create.bspline.basis(nbasis = 10)
+  fdobj <- fd(basisobj = bs)
+  expect_equal(get_mfd_fd(fdobj),
+               mfd(coef = array(0, dim = c(10, 1, 1)),
+                   basisobj = fdobj$basis,
+                   fdnames = fdobj$fdnames))
   expect_equal({
     mfdobj <- data_sim_mfd()
     fdobj <- fd(mfdobj$coefs, mfdobj$basis, mfdobj$fdnames)
@@ -51,12 +53,12 @@ test_that("tensor_product_mfd works with multivariate objects", {
   expect_equal({
     tp <- tensor_product_mfd(mfdobj1, mfdobj2)
     dim(tp$coef)
-  }, c(4, 4, 1, 3 * 2))
+  }, c(5, 5, 1, 3 * 2))
 })
 
 test_that("scale_mfd returns error with one single obs", {
   mfdobj1 <- data_sim_mfd()
-  mfdobj2 <- data_sim_mfd(nobs = 1, seed = 123)
+  mfdobj2 <- data_sim_mfd(nobs = 1)
   expect_error({
     scale_mfd(mfdobj2)
   },
@@ -76,8 +78,8 @@ test_that("scale_mfd returns error with one single obs", {
 })
 
 test_that("scale_mfd requires center to be fd object", {
-  mfdobj1 <- data_sim_mfd(seed = 1)
-  mfdobj2 <- data_sim_mfd(seed = 123)
+  mfdobj1 <- data_sim_mfd()
+  mfdobj2 <- data_sim_mfd()
 
   # Normal scaling
   mfdobj1_scaled <- scale_mfd(mfdobj1)

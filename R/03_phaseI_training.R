@@ -34,7 +34,7 @@
 #' Note that at the moment you have to take into account manually
 #' the family-wise error rate and adjust
 #' the two values accordingly. See Capezza et al. (2020) and
-#' Centofanti et al. (2020)
+#' Centofanti et al. (2021)
 #' for additional details. Default value is
 #' \code{list(T2 = 0.025, spe = 0.025)}.
 #'
@@ -67,9 +67,9 @@
 #' 36(3):477--500.
 #' <doi:10.1002/asmb.2507>
 #'
-#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
+#' Centofanti F, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2021)
 #' Functional Regression Control Chart.
-#' \emph{Technometrics}. <doi:10.1080/00401706.2020.1753581>
+#' \emph{Technometrics}, 63(3), 281--294. <doi:10.1080/00401706.2020.1753581>
 calculate_limits <- function(pca,
                              tuning_data = NULL,
                              components,
@@ -150,7 +150,8 @@ calculate_limits <- function(pca,
 #' while the difference between the original functional data
 #' and the projected ones (based on the
 #' selected components) is used to calculate the SPE statistic.
-#' @param seed
+#' @param seed Deprecated: use \code{set.seed()} before calling
+#' the function for reproducibility.
 #' Since the split in the k groups is random,
 #' you can fix a seed to ensure reproducibility.
 #' @param nfold
@@ -165,7 +166,7 @@ calculate_limits <- function(pca,
 #' Note that at the moment you have to take into account manually
 #' the family-wise error rate and adjust
 #' the two values accordingly. See Capezza et al. (2020) and
-#' Centofanti et al. (2020)
+#' Centofanti et al. (2021)
 #' for additional details. Default value is
 #' \code{list(T2 = 0.025, spe = 0.025)}.
 #' @param ncores
@@ -195,16 +196,21 @@ calculate_limits <- function(pca,
 #'
 calculate_cv_limits <- function(pca,
                                 components,
-                                seed = 0,
+                                seed,
                                 nfold = 5,
                                 alpha = list(T2 = .025, spe = .025),
                                 ncores = 1) {
+
+  if (!missing(seed)) {
+    warning(paste0("argument seed is deprecated; ",
+                   "please use set.seed() before calling the function instead."),
+            call. = FALSE)
+  }
 
   if (!is.list(pca)) {
     stop("pca must be a list produced by pca_mfd.")
   }
 
-  set.seed(seed)
   mfdobj <- pca$data
   nobs <- dim(mfdobj$coefs)[2]
   nvar <- dim(mfdobj$coefs)[3]
@@ -214,7 +220,7 @@ calculate_cv_limits <- function(pca,
     fd_train <- mfdobj[- folds[[ii]]]
     fd_test <- mfdobj[folds[[ii]]]
 
-    pca_cv <- pca_mfd(fd_train, scale = pca$scale)
+    pca_cv <- pca_mfd(fd_train, scale = pca$scale, nharm = max(components))
     control_charts_pca(pca = pca_cv,
                        components = components,
                        newdata = fd_test)
