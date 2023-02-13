@@ -4,7 +4,7 @@
 \alias{plot_mon}
 \title{Plot multivariate functional object over the training data set}
 \usage{
-plot_mon(cclist, fd_train, fd_test, print_id = FALSE)
+plot_mon(cclist, fd_train, fd_test, plot_title = FALSE, print_id = FALSE)
 }
 \arguments{
 \item{cclist}{A \code{data.frame} produced by
@@ -19,9 +19,14 @@ They are plotted in gray in the background.}
 the phase II data set of the functional variables to be monitored.
 They are coloured in black or red on the foreground.}
 
-\item{print_id}{A logical value, if TRUE,
+\item{plot_title}{A logical value. If \code{TRUE},
+it prints the title with the observation name.
+Default is \code{FALSE}.}
+
+\item{print_id}{A logical value. If \code{TRUE}, and also \code{plot_title} is \code{TRUE},
 it prints also the id of the observation
-in the title of the ggplot.}
+in the title of the ggplot.
+Default is \code{FALSE}}
 }
 \value{
 A ggplot of the multivariate functional data.
@@ -48,16 +53,19 @@ mfdobj_x <- get_mfd_list(air[fun_covariates],
                          lambda = 1e-2)
 y <- rowMeans(air$NO2)
 y1 <- y[1:60]
+ytuning <- y[61:90]
 y2 <- y[91:100]
 mfdobj_x1 <- mfdobj_x[1:60]
 mfdobj_x_tuning <- mfdobj_x[61:90]
 mfdobj_x2 <- mfdobj_x[91:100]
 mod <- sof_pc(y1, mfdobj_x1)
-cclist <- control_charts_sof_pc(mod = mod,
-                                y_test = y2,
-                                mfdobj_x_test = mfdobj_x2,
-                                mfdobj_x_tuning = mfdobj_x_tuning)
-plot_control_charts(cclist)
+cclist <- regr_cc_sof(object = mod,
+                      y_new = y2,
+                      mfdobj_x_new = mfdobj_x2,
+                      y_tuning = y_tuning,
+                      mfdobj_x_tuning = mfdobj_x_tuning,
+                      include_covariates = TRUE)
+get_ooc(cclist)
 cont_plot(cclist, 3)
 plot_mon(cclist, fd_train = mfdobj_x1, fd_test = mfdobj_x2[3])
 

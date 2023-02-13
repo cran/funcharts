@@ -23,7 +23,8 @@ as provided to \code{fda::\link[fda]{fd}}, but there is no default.}
 containing labels for the levels of the corresponding dimension
 of the discrete data.
 
-The first dimension is for a single character indicating the argument values,
+The first dimension is for a single character indicating the argument
+values,
 i.e. the variable on the functional domain.
 
 The second is for replications, i.e. it denotes the functional observations.
@@ -69,12 +70,16 @@ a three-dimensional array of coefficients even if
 the functional data is univariate.
 Moreover, it allows to include the original raw data from which
 you get the smooth functional data.
+Finally, it also includes the matrix of precomputed inner products
+of the basis functions, which can be useful to speed up computations
+when calculating inner products between functional observations
 }
 \details{
 To check that an object is of this class, use function is.mfd.
 }
 \examples{
 library(funcharts)
+library(fda)
 set.seed(0)
 nobs <- 5
 nbasis <- 10

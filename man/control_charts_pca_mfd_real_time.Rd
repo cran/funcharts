@@ -2,19 +2,20 @@
 % Please edit documentation in R/real_time_04_phaseII.R
 \name{control_charts_pca_mfd_real_time}
 \alias{control_charts_pca_mfd_real_time}
-\title{Real-time T^2 and SPE control charts for multivariate functional data}
+\title{Real-time T2 and SPE control charts for multivariate functional data}
 \usage{
 control_charts_pca_mfd_real_time(
   pca_list,
   components_list = NULL,
   mfdobj_x_test,
   mfdobj_x_tuning = NULL,
-  alpha = list(T2 = 0.0125, spe = 0.0125),
+  alpha = 0.05,
   limits = "standard",
   seed,
   nfold = NULL,
   tot_variance_explained = 0.9,
   single_min_variance_explained = 0,
+  absolute_error = FALSE,
   ncores = 1
 )
 }
@@ -62,6 +63,8 @@ Default is NULL.}
 \item{tot_variance_explained}{See \code{\link{control_charts_pca}}.}
 
 \item{single_min_variance_explained}{See \code{\link{control_charts_pca}}.}
+
+\item{absolute_error}{See \code{\link{control_charts_pca}}.}
 
 \item{ncores}{If you want parallelization, give the number of cores/threads
 to be used when creating objects separately for different instants.}

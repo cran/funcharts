@@ -2,20 +2,21 @@
 % Please edit documentation in R/04_phaseII.R
 \name{control_charts_pca}
 \alias{control_charts_pca}
-\title{T^2 and SPE control charts for multivariate functional data}
+\title{T2 and SPE control charts for multivariate functional data}
 \usage{
 control_charts_pca(
   pca,
   components = NULL,
   tuning_data = NULL,
   newdata,
-  alpha = list(T2 = 0.025, spe = 0.025),
+  alpha = 0.05,
   limits = "standard",
   seed,
   nfold = 5,
   ncores = 1,
   tot_variance_explained = 0.9,
-  single_min_variance_explained = 0
+  single_min_variance_explained = 0,
+  absolute_error = FALSE
 )
 }
 \arguments{
@@ -37,7 +38,7 @@ Default is NULL.}
 
 \item{tuning_data}{An object of class \code{mfd} containing
 the tuning set of the multivariate functional data, used to estimate the
-T^2 and SPE control chart limits.
+T2 and SPE control chart limits.
 If NULL, the training data, i.e. the data used to fit the MFPCA model,
 are also used as the tuning data set, i.e. \code{tuning_data=pca$data}.
 Default is NULL.}
@@ -45,16 +46,18 @@ Default is NULL.}
 \item{newdata}{An object of class \code{mfd} containing
 the phase II set of the multivariate functional data to be monitored.}
 
-\item{alpha}{A named list with two elements, named \code{T2} and \code{spe},
+\item{alpha}{If it is a number between 0 and 1,
+it defines the overall type-I error probability and the Bonferroni
+correction is applied by setting the type-I error probability
+in the two control charts equal to \code{alpha/2}.
+If you want to set manually the Type-I error probabilities in the
+two control charts, then the argument \code{alpha} must be
+a named list
+with two elements, named \code{T2} and \code{spe},
 respectively, each containing
 the desired Type I error probability of
 the corresponding control chart.
-Note that at the moment you have to take into account manually
-the family-wise error rate and adjust
-the two values accordingly. See Capezza et al. (2020) and
-Centofanti et al. (2021)
-for additional details. Default value is
-\code{list(T2 = 0.025, spe = 0.025)}.}
+Default value is 0.05.}
 
 \item{limits}{A character value.
 If "standard", it estimates the control limits on the tuning
@@ -92,6 +95,16 @@ that has to be explained
 by each multivariate functional principal component
 such that it is retained into the MFPCA model.
 Default is 0.}
+
+\item{absolute_error}{If FALSE, the SPE statistic, which monitors the principal components
+not retained in the MFPCA model, is calculated as the sum
+of the integrals of the squared prediction error functions, obtained
+as the difference between the actual functions and their approximation
+after projection over the selected principal components.
+If TRUE, the SPE statistic is calculated by replacing the square of
+the prediction errors with the absolute value, as proposed by
+Capizzi and Masarotto (2018).
+Default value is FALSE.}
 }
 \value{
 A \code{data.frame} with as many rows as the number of
@@ -101,11 +114,11 @@ the following columns:
 * one \code{id} column identifying the multivariate functional observation
 in the phase II data set,
 
-* one \code{T2} column containing the Hotelling T^2 statistic
+* one \code{T2} column containing the Hotelling T2 statistic
 calculated for all observations,
 
 * one column per each functional variable,
-containing its contribution to the T^2 statistic,
+containing its contribution to the T2 statistic,
 
 * one \code{spe} column containing the SPE statistic calculated
 for all observations,
@@ -114,12 +127,12 @@ for all observations,
 containing its contribution to the SPE statistic,
 
 * \code{T2_lim} gives the upper control limit of
-the Hotelling's T^2 control chart,
+the Hotelling's T2 control chart,
 
 * one \code{contribution_T2_*_lim} column per each
 functional variable giving the
 limits of the contribution of that variable
-to the Hotelling's T^2 statistic,
+to the Hotelling's T2 statistic,
 
 * \code{spe_lim} gives the upper control limit of the SPE control chart
 
@@ -129,7 +142,7 @@ limits of the contribution of that variable to the SPE statistic.
 }
 \description{
 This function builds a data frame needed to plot
-the Hotelling's T^2 and squared prediction error (SPE)
+the Hotelling's T2 and squared prediction error (SPE)
 control charts
 based on multivariate functional principal component analysis
 (MFPCA) performed
@@ -171,6 +184,11 @@ based on scalar-on-function regression.
 \emph{Applied Stochastic Models in Business and Industry},
 36(3):477--500.
 <doi:10.1002/asmb.2507>
+
+Capizzi, G., & Masarotto, G. (2018).
+Phase I distribution-free analysis with the R package dfphase1.
+In \emph{Frontiers in Statistical Quality Control 12 (pp. 3-19)}.
+Springer International Publishing.
 }
 \seealso{
 \code{\link{regr_cc_fof}}

@@ -76,7 +76,7 @@
 #' \code{mod$coefficients} contains the matrix of coefficients
 #' of the functional regression basis functions,
 #'
-#' * \code{beta_fd}: a \code{bi_fd} object containing the
+#' * \code{beta_fd}: a \code{bifd} object containing the
 #' bivariate functional regression coefficients \eqn{\beta(s,t)}
 #' estimated with the function-on-function linear regression model,
 #'
@@ -231,7 +231,7 @@ fof_pc <- function(mfdobj_y,
       ncomponents_x <-
         which(cumsum(x_pca$varprop) > tot_variance_explained_x)[1]
     }
-    components_x <- 1:ncomponents_x
+    components_x <- seq_len(ncomponents_x)
   }
 
   if (is.null(components_y)) {
@@ -244,7 +244,7 @@ fof_pc <- function(mfdobj_y,
         ncomponents_y <-
           which(cumsum(y_pca$varprop) > tot_variance_explained_y)[1]
       }
-    components_y <- 1:ncomponents_y
+    components_y <- seq_len(ncomponents_y)
   }
 
   df_y <- data.frame(y_pca$pcscores[, components_y, drop = FALSE])
@@ -262,17 +262,24 @@ fof_pc <- function(mfdobj_y,
   B <- as.matrix(B)
 
   Gx <- x_pca$harmonics$coefs[, components_x, , drop = FALSE]
-  Gx <- do.call(rbind, lapply(1:n_var_x, function(jj) matrix(Gx[, , jj], nrow = dim(Gx)[1])))
+  Gx <- do.call(rbind, lapply(seq_len(n_var_x), function(jj) {
+    matrix(Gx[, , jj], nrow = dim(Gx)[1])
+    }))
   Gy <- y_pca$harmonics$coefs[, components_y, , drop = FALSE]
-  Gy <- do.call(rbind, lapply(1:n_var_y, function(jj) matrix(Gy[, , jj], nrow = dim(Gy)[1])))
+  Gy <- do.call(rbind, lapply(seq_len(n_var_y), function(jj) {
+    matrix(Gy[, , jj], nrow = dim(Gy)[1])
+    }))
   beta_coefs <- Gx %*% B %*% t(Gy)
   kx <- x_pca$harmonics$basis$nbasis
   ky <- y_pca$harmonics$basis$nbasis
-  beta_coefs <- array(as.numeric(beta_coefs), dim = c(kx, n_var_x, ky, n_var_y))
+  beta_coefs <- array(as.numeric(beta_coefs),
+                      dim = c(kx, n_var_x, ky, n_var_y))
   beta_coefs <- aperm(beta_coefs, perm = c(1, 3, 2, 4))
-  beta_coefs <- array(as.numeric(beta_coefs), dim = c(kx, ky, 1, n_var_x * n_var_y))
+  beta_coefs <- array(as.numeric(beta_coefs),
+                      dim = c(kx, ky, 1, n_var_x * n_var_y))
 
-  fdnames <- as.matrix(expand.grid(y_pca$harmonics$fdnames[[3]], x_pca$harmonics$fdnames[[3]]))
+  fdnames <- as.matrix(expand.grid(y_pca$harmonics$fdnames[[3]],
+                                   x_pca$harmonics$fdnames[[3]]))
   fdnames <- apply(fdnames, 1, function(x) paste(x, collapse = " vs "))
 
   bifdnames <- list(x_pca$harmonics$basis$names,
@@ -302,13 +309,19 @@ fof_pc <- function(mfdobj_y,
     scale = attr(y_z, "scaled:scale"))
 
   if (type_residuals == "standard") {
-    res <- mfd(y_z$coefs - y_hat_z$coefs, mfdobj_y$basis, mfdobj_y$fdnames, B = mfdobj_y$basis$B)
+    res <- mfd(y_z$coefs - y_hat_z$coefs,
+               mfdobj_y$basis,
+               mfdobj_y$fdnames,
+               B = mfdobj_y$basis$B)
     res_pca <- pca_mfd(res, scale = FALSE, nharm = nharm_res)
   }
 
   get_studentized_residuals <- NULL
 
-  res_original <- mfd(mfdobj_y$coefs - y_hat$coefs, basis_y, mfdobj_y$fdnames, B = mfdobj_y$basis$B)
+  res_original <- mfd(mfdobj_y$coefs - y_hat$coefs,
+                      basis_y,
+                      mfdobj_y$fdnames,
+                      B = mfdobj_y$basis$B)
 
   if (type_residuals == "studentized") {
 
@@ -330,7 +343,7 @@ fof_pc <- function(mfdobj_y,
     xseq <- seq(bs$rangeval[1], bs$rangeval[2], length.out = 1000)
     y_pca_eval <- eval.fd(xseq, y_pca$harmonics)
     y_pca_coef <- project.basis(y_pca_eval, xseq, bs)
-    G <- as.numeric(y_pca_coef[, 1:ncomponents_y, 1])
+    G <- as.numeric(y_pca_coef[, seq_len(ncomponents_y), 1])
     G <- matrix(G, ncol = ncomponents_y)
     psp_coef <- G %*% sigma_M %*% t(G)
     bifd_obj <- bifd(psp_coef, sbasisobj = bs, tbasisobj = bs)
@@ -375,7 +388,7 @@ fof_pc <- function(mfdobj_y,
     ncomponents_res <-
       which(cumsum(res_pca$varprop) > tot_variance_explained_res)[1]
   }
-  components_res <- 1:ncomponents_res
+  components_res <- seq_len(ncomponents_res)
 
   list(mod = mod,
        beta_fd = beta_fd,
@@ -514,9 +527,10 @@ predict_fof_pc <- function(object,
   if (is.null(mfdobj_x_new)) {
     mfdobj_x_new_scaled <- pca_x$data_scaled
   } else {
-    mfdobj_x_new_scaled <- scale_mfd(mfdobj_x_new,
-                                     center = pca_x$center_fd,
-                                     scale = if (pca_x$scale) pca_x$scale_fd else FALSE)
+    mfdobj_x_new_scaled <-
+      scale_mfd(mfdobj_x_new,
+                center = pca_x$center_fd,
+                scale = if (pca_x$scale) pca_x$scale_fd else FALSE)
   }
 
   x_new <- get_scores(pca = pca_x,
@@ -580,63 +594,3 @@ predict_fof_pc <- function(object,
 
 }
 
-
-
-#' #' Title
-#' #'
-#' #' @param mod
-#' #'
-#' #' @return
-#' #' @export
-#' #'
-#' #' @examples
-#' plot_bootstrap_fof_pc <- function(mod, nboot = 25, ncores = 1) {
-#'
-#'   variables_plot <- mod$beta_fd$bifdnames[[4]]
-#'   nn <- nrow(mod$mod$model)
-#'
-#'
-#'   s_eval <- seq(mod$beta_fd$sbasis$rangeval[1],
-#'   mod$beta_fd$sbasis$rangeval[2],l=100)
-#'   t_eval <- seq(mod$beta_fd$tbasis$rangeval[1],
-#'   mod$beta_fd$tbasis$rangeval[2],l=100)
-#'   X_eval <- eval.bifd(s_eval, t_eval, mod$beta_fd)
-#'   X_max_abs <- max(abs(X_eval))
-#'
-#'   set.seed(0)
-#'   mclapply(1:nboot, function(ii) {
-#'     rows_B <- sample(1:nn, nn, TRUE)
-#'     mod <- fof_pc(mfdobj_y = mod$pca_y$data[rows_B],
-#'                   mfdobj_x = mod$pca_x$data[rows_B],
-#'                   type_residuals = mod$type_residuals)
-#'     X_eval <- eval.bifd(s_eval, t_eval, mod$beta_fd)
-#'     X_max_abs <<- max(X_max_abs, max(abs(X_eval)))
-#'
-#'     seq_along(mod$beta_fd$bifdnames[[4]]) %>%
-#'       lapply(function(ii) X_eval[ , , 1, ii] %>%
-#'                data.frame() %>%
-#'                setNames(t_eval) %>%
-#'                mutate(s = s_eval) %>%
-#'                pivot_longer(- s, names_to = "t", values_to = "value") %>%
-#'                mutate(t = as.numeric(t),
-#'                       variable = mod$beta_fd$bifdnames[[4]][ii])) %>%
-#'       bind_rows() %>%
-#'       mutate(nboot = ii)
-#'   }, mc.cores = ncores) %>%
-#'     bind_rows() %>%
-#'     ggplot() +
-#'     geom_tile(aes(s, t, fill = value)) +
-#'     facet_wrap(~variable) +
-#'     gganimate::transition_states(nboot,
-#'                       transition_length = 2,
-#'                       state_length = 1) +
-#'     scale_fill_gradientn(
-#'       colours = c("blue", "white", "red"),
-#'       limits = c(- X_max_abs, X_max_abs)) +
-#'     theme_bw() +
-#'     theme(panel.grid.major = element_blank(),
-#'           panel.grid.minor = element_blank(),
-#'           strip.background = element_blank(),
-#'           panel.border = element_rect(colour = "black"))
-#'
-#' }

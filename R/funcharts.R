@@ -8,16 +8,50 @@
 #'
 #' @docType package
 #' @name funcharts
-#' @import fda
-#' @import parallel
-#' @import dplyr
-#' @import ggplot2
-#' @importFrom tidyr pivot_longer drop_na
+#' @importFrom fda
+#' bifd create.bspline.basis eval.bifd eval.fd fd fdPar inprod.bspline is.basis
+#' @importFrom fda
+#' is.fd is.Lfd int2Lfd mean.fd sd.fd times.fd project.basis minus.fd is.fdPar
+#' @importFrom fda
+#' smooth.basis create.fourier.basis create.constant.basis center.fd
+#' @importFrom fda
+#' eval.penalty
+#' @importFrom parallel
+#' mclapply parLapply stopCluster makeCluster clusterExport stopCluster
+#' @importFrom dplyr
+#' select mutate filter arrange group_by bind_cols bind_rows case_when
+#' @importFrom dplyr
+#' contains everything inner_join rename "%>%" slice pull n ungroup
+#' @importFrom ggplot2
+#' aes aes_string after_stat xlab ylab ggplot ggtitle guides xlim ylim
+#' @importFrom ggplot2
+#' scale_color_continuous scale_colour_continuous scale_color_discrete labs
+#' @importFrom ggplot2
+#' scale_colour_discrete scale_fill_gradientn scale_color_gradientn
+#' @importFrom ggplot2
+#' scale_linetype_discrete
+#' @importFrom ggplot2
+#' scale_colour_gradientn scale_linetype_manual scale_colour_manual
+#' @importFrom ggplot2
+#' scale_color_manual scale_x_continuous element_rect element_text
+#' @importFrom ggplot2
+#' element_blank theme theme_bw geom_line geom_tile geom_contour geom_hline
+#' @importFrom ggplot2
+#' geom_vline geom_point geom_blank geom_text geom_segment geom_col
+#' @importFrom ggplot2
+#' scale_fill_manual facet_wrap
 #' @importFrom stats
-#' approxfun as.formula hatvalues lm predict quantile setNames var rnorm dnorm approx
-#' @importFrom rlang .data
+#' approxfun as.formula hatvalues lm predict quantile
+#' @importFrom stats
+#' setNames var rnorm dnorm approx
+#' @importFrom stats
+#' model.matrix rstandard formula uniroot
+#' @importFrom tidyr pivot_longer drop_na
+#' @importFrom rlang .data :=
 #' @importFrom RSpectra eigs_sym
 #' @importFrom matrixStats rowCumsums
+#' @importFrom graphics par persp
+#' @importFrom stringr str_count
 #' @references
 #' Capezza C, Lepore A, Menafoglio A, Palumbo B, Vantini S. (2020)
 #' Control charts for

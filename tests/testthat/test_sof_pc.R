@@ -1,3 +1,4 @@
+set.seed(0)
 data("air")
 air <- lapply(air, function(x) x[1:10, , drop = FALSE])
 fun_covariates <- names(air)[names(air) != "NO2"]
@@ -17,10 +18,15 @@ test_that("sof_pc", {
   expect_error(sof_pc(y, mfdobj_x, components = - 10),
                "components must be a vector of positive integers.")
 
+
   mod <- sof_pc(y[1:5], mfdobj_x[1:5])
+
+  p <- plot_bootstrap_sof_pc(mod, nboot = 1)
+  expect_is(p, "ggplot")
   expect_equal(names(mod), c("mod",
                              "pca",
                              "beta_fd",
+                             "residuals",
                              "components",
                              "selection",
                              "single_min_variance_explained",
@@ -28,8 +34,8 @@ test_that("sof_pc", {
                              "gcv",
                              "PRESS"))
   expect_error(
-    predict_sof_pc(mod, newdata = mfdobj_x[, 1]),
-    "newdata must have the same number of variables as training data.")
+    predict_sof_pc(mod, y_new = y[1], mfdobj_x_new = mfdobj_x[, 1]),
+    "mfdobj_x_new must have the same number of variables as training data.")
   expect_error(
     predict_sof_pc(mod, alpha = 0),
     "alpha must be strictly between 0 and 1.")
@@ -53,6 +59,9 @@ test_that("sof_pc", {
     predict_sof_pc(list("not from sof_pc" = 1)),
     "object must be a list produced by sof_pc."
   )
+
+
 })
+
 
 

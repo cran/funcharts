@@ -10,7 +10,9 @@ regr_cc_fof_real_time(
   mfdobj_x_new_list,
   mfdobj_y_tuning_list = NULL,
   mfdobj_x_tuning_list = NULL,
-  alpha = list(T2 = 0.025, spe = 0.025),
+  alpha = 0.05,
+  include_covariates = FALSE,
+  absolute_error = FALSE,
   ncores = 1
 )
 }
@@ -68,6 +70,10 @@ are also used as the tuning data set.
 Default is NULL.}
 
 \item{alpha}{See \code{\link{regr_cc_fof}}.}
+
+\item{include_covariates}{See \code{\link{regr_cc_fof}}.}
+
+\item{absolute_error}{See \code{\link{regr_cc_fof}}.}
 
 \item{ncores}{If you want parallelization, give the number of cores/threads
 to be used when creating objects separately for different instants.}

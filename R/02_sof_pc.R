@@ -192,13 +192,15 @@ sof_pc <- function(y,
       if (sum(components_enough_var) == 0)
         ncomponents <- length(pca$varprop) else
           ncomponents <- which(cumsum(pca$varprop) > tot_variance_explained)[1]
-      components <- 1:ncomponents
+      components <- seq_len(ncomponents)
       components <-
-        which(pca$varprop[1:ncomponents] > single_min_variance_explained)
+        which(pca$varprop[components] > single_min_variance_explained)
     }
   }
 
-  mod <- lm(y ~ ., data = data.frame(scores[, components, drop = FALSE], y = y))
+  mod <- lm(y ~ .,
+            data = data.frame(scores[, components, drop = FALSE],
+                              y = y))
 
   beta_fd <- 0
   for (jj in seq_along(components)) {
@@ -222,6 +224,7 @@ sof_pc <- function(y,
   list(mod = mod,
        pca = pca,
        beta_fd = beta_fd,
+       residuals = mod$residuals,
        components = components,
        selection = selection,
        single_min_variance_explained = single_min_variance_explained,
@@ -243,7 +246,11 @@ sof_pc <- function(y,
 #' @param object
 #' A list obtained as output from \code{sof_pc},
 #' i.e. a fitted scalar-on-function linear regression model.
-#' @param newdata
+#' @param y_new
+#' A numeric vector containing the new observations of
+#' the scalar response variable
+#' to be predicted.
+#' @param mfdobj_x_new
 #' An object of class \code{mfd} containing
 #' new observations of the functional covariates.
 #' If NULL, it is set as the functional covariates data used for model fitting.
@@ -253,6 +260,8 @@ sof_pc <- function(y,
 #' and such that this function returns the \code{1-alpha}
 #' prediction interval on the response.
 #' Default is 0.05.
+#' @param newdata
+#' Deprecated, use \code{mfdobj_x_new} argument.
 #'
 #' @return
 #' A \code{data.frame} with as many rows as the
@@ -264,11 +273,17 @@ sof_pc <- function(y,
 #'
 #' * \code{lwr}:
 #' lower limit of the \code{1-alpha} prediction interval
-#' on the response,
+#' on the response, based on the assumption that it is normally distributed.
 #'
 #' * \code{upr}:
 #' upper limit of the \code{1-alpha} prediction interval
-#' on the response.
+#' on the response, based on the assumption that it is normally distributed.
+#'
+#' * \code{res}:
+#' the residuals obtained as the values of \code{y_new} minus their
+#' fitted values. If the scalar-on-function model has been fitted with
+#' \code{type_residual == "studentized"}, then the studentized residuals
+#' are calculated.
 #'
 #' @export
 #' @examples
@@ -281,7 +296,18 @@ sof_pc <- function(y,
 #' mod <- sof_pc(y, mfdobj_x)
 #' predict_sof_pc(mod)
 #'
-predict_sof_pc <- function(object, newdata = NULL, alpha = .05) {
+predict_sof_pc <- function(object,
+                           y_new = NULL,
+                           mfdobj_x_new = NULL,
+                           alpha = 0.05,
+                           newdata) {
+
+  if (!missing(newdata)) {
+    warning(paste0("argument newdata is deprecated; ",
+                   "please use mfdobj_x_new instead."),
+            call. = FALSE)
+    mfdobj_x_new <- newdata
+  }
 
   if (!is.list(object)) {
     stop("object must be a list produced by sof_pc.")
@@ -291,6 +317,7 @@ predict_sof_pc <- function(object, newdata = NULL, alpha = .05) {
     "mod",
     "pca",
     "beta_fd",
+    "residuals",
     "components",
     "selection",
     "single_min_variance_explained",
@@ -301,14 +328,22 @@ predict_sof_pc <- function(object, newdata = NULL, alpha = .05) {
     stop("object must be a list produced by sof_pc.")
   }
 
-  if (!is.null(newdata)) {
-    if (!is.mfd(newdata)) {
-      stop("newdata must be an object from mfd class.")
-    }
-    if (dim(newdata$coefs)[3] != dim(object$pca$data$coefs)[3]) {
-      stop("newdata must have the same number of variables as training data.")
+  if (!is.null(y_new)) {
+    if (!is.numeric(y_new)) {
+      stop("y_new must be numeric.")
     }
   }
+
+  if (!is.null(mfdobj_x_new)) {
+    if (!is.mfd(mfdobj_x_new)) {
+      stop("mfdobj_x_new must be an object from mfd class.")
+    }
+    if (dim(mfdobj_x_new$coefs)[3] != dim(object$pca$data$coefs)[3]) {
+      stop(paste0("mfdobj_x_new must have the same number of variables ",
+                  "as training data."))
+    }
+  }
+
   if (alpha <= 0 | alpha >= 1) {
     stop("alpha must be strictly between 0 and 1.")
   }
@@ -317,24 +352,46 @@ predict_sof_pc <- function(object, newdata = NULL, alpha = .05) {
   pca <- object$pca
   components <- object$components
 
-  if (is.null(newdata)) {
-    newdata_scaled <- pca$data_scaled
+  if (is.null(mfdobj_x_new) | is.null(y_new)) {
+    mfdobj_x_new <- pca$data
+    mfdobj_x_new_scaled <- pca$data_scaled
+    fml <- formula(object$mod)
+    response_name <- all.vars(fml)[1]
+    y_new <- object$mod$model[, response_name]
   } else {
-    newdata_scaled <- scale_mfd(newdata,
+    mfdobj_x_new_scaled <- scale_mfd(mfdobj_x_new,
                                 center = pca$center_fd,
                                 scale = if (pca$scale) pca$scale_fd else FALSE)
   }
+
+  nobsx <- dim(mfdobj_x_new$coefs)[2]
+  nobsy <- length(y_new)
+  if (nobsx != nobsy) {
+    stop(paste0("y_new and mfdobj_x_new must have ",
+                "the same number of observations."))
+  }
+
   scores <- as.data.frame(get_scores(pca,
                                      components,
-                                     newdata_scaled = newdata_scaled))
+                                     newdata_scaled = mfdobj_x_new_scaled))
 
   y_hat_int <- predict(mod,
                        newdata = scores,
                        interval = "prediction",
                        level = 1 - alpha)
-  delta <- y_hat_int[, "upr"] - y_hat_int[, "fit"]
 
-  data.frame(y_hat_int)
+  ret <- data.frame(y_hat_int)
+
+  res <- y_new - ret$fit
+  # hatvalues_new <-
+  #   colSums(t(cbind(1, scores)^2) / colSums(model.matrix(object$mod)^2))
+  # if (object$type_residual == "studentized") {
+  #   res <- res / (summary(mod)$sigma * sqrt(1 - hatvalues_new))
+  # }
+  ret$pred_err <- res
+  ret$y <- y_new
+
+  return(ret)
 
 }
 
@@ -382,21 +439,21 @@ plot_bootstrap_sof_pc <- function(mod, nboot = 25, ncores = 1) {
   components <- mod$components
 
   single_boot <- function(ii) {
-    rows_B <- sample(1:nn, nn, TRUE)
+    rows_B <- sample(seq_len(nn), nn, TRUE)
     mod <- sof_pc(mfdobj_x = mod$pca$data[rows_B],
                   y = mod$mod$model$y[rows_B],
                   components = mod$components)
     mod$beta_fd$coefs[, 1, ]
   }
   if (ncores == 1) {
-    B <- lapply(1:nboot, single_boot)
+    B <- lapply(seq_len(nboot), single_boot)
   } else {
     if (.Platform$OS.type == "unix") {
-      B <- mclapply(1:nboot, single_boot, mc.cores = ncores)
+      B <- mclapply(seq_len(nboot), single_boot, mc.cores = ncores)
     } else {
       cl <- makeCluster(ncores)
       clusterExport(cl, c("nn", "mod"), envir = environment())
-      B <- parLapply(cl, 1:nboot, single_boot)
+      B <- parLapply(cl, seq_len(nboot), single_boot)
       stopCluster(cl)
     }
   }
@@ -405,20 +462,22 @@ plot_bootstrap_sof_pc <- function(mod, nboot = 25, ncores = 1) {
     B <- array(B, dim = c(nrow(B), ncol(B), 1))
   } else B <- aperm(B, c(1, 3, 2))
 
-  dimnames(B)[[2]] <- 1:nboot
+  dimnames(B)[[2]] <- seq_len(nboot)
 
   B_mfd <- mfd(
     B,
     mod$beta_fd$basis,
     list(mod$beta_fd$fdnames[[1]],
-         1:nboot,
+         seq_len(nboot),
          variables),
     B = mod$beta_fd$basis$B)
-  ggplot() +
-    geom_mfd(mfdobj = B_mfd, alpha = .3, lwd = .3, col = "darkgray") +
-    geom_hline(yintercept = 0, lty = 2) +
-    geom_mfd(mfdobj = mod$beta_fd) +
-    facet_wrap(~var)
+  p <- plot_mfd(mfdobj = B_mfd,
+                alpha = .3,
+                lwd = .3,
+                col = "darkgray",
+                y_lim_equal = TRUE) &
+    geom_hline(yintercept = 0, lty = 2)
+  lines_mfd(p, mfdobj_new = mod$beta_fd, linewidth = 0.5, y_lim_equal = TRUE)
 
 }
 

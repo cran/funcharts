@@ -134,17 +134,16 @@ plot_pca_mfd <- function(pca, harm = 0, scaled = FALSE) {
     nharm <- length(harm)
     nvar <- length(pca$harmonics$fdnames[[3]])
     scaled_coefs <- array(scaled_coefs, dim = c(nbasis, nharm, nvar))
-    dimnames(scaled_coefs) <- dimnames(pca$harmonics$coefs[, harm, , drop = FALSE])
+    dimnames(scaled_coefs) <-
+      dimnames(pca$harmonics$coefs[, harm, , drop = FALSE])
     pca$harmonics$coefs <- scaled_coefs
   }
 
-  p_functions <- ggplot() +
-    geom_mfd(aes(col = id), mfdobj = pca$harmonics[harm]) +
-    ggtitle("Eigenfunctions")
+  p_functions <- plot_mfd(aes_string(col = "id"), mfdobj = pca$harmonics[harm])
 
   components <- which(cumsum(pca$varprop) < .99)
   # p_values <- data.frame(eigenvalues = pca$values[components]) %>%
-  #   mutate(n_comp = 1:n()) %>%
+  #   mutate(n_comp = seq_len(n())) %>%
   #   ggplot() +
   #   geom_col(aes(n_comp, eigenvalues)) +
   #   theme_bw() +
@@ -355,9 +354,9 @@ get_fit_pca_given_scores <- function(scores, harmonics) {
   mfd(fit_coefs, basis, fdnames, B = basis$B)
 }
 
-#' Calculate the Hotelling's T^2 statistics of multivariate functional data
+#' Calculate the Hotelling's T2 statistics of multivariate functional data
 #'
-#' Calculate the Hotelling's T^2 statistics of
+#' Calculate the Hotelling's T2 statistics of
 #' multivariate functional data projected
 #' onto a multivariate functional principal component subspace.
 #'
@@ -376,10 +375,10 @@ get_fit_pca_given_scores <- function(scores, harmonics) {
 #' @return
 #' A \code{data.frame} with as many rows as the number of
 #' functional replications in \code{newdata}.
-#' It has one \code{T2} column containing the Hotelling T^2
+#' It has one \code{T2} column containing the Hotelling T2
 #' statistic calculated for all observations, as well as
 #' one column per each functional variable, containing its
-#' contribution to the T^2 statistic.
+#' contribution to the T2 statistic.
 #' See Capezza et al. (2020) for definition of contributions.
 #' @noRd
 #'
@@ -390,16 +389,23 @@ get_fit_pca_given_scores <- function(scores, harmonics) {
 #' \emph{Applied Stochastic Models in Business and Industry},
 #' 36(3):477--500. <doi:10.1002/asmb.2507>
 #'
-get_T2_spe <- function(pca, components, newdata_scaled = NULL) {
+get_T2_spe <- function(pca,
+                       components,
+                       newdata_scaled = NULL,
+                       absolute_error = FALSE) {
   inprods <- get_pre_scores(pca, components, newdata_scaled)
   scores <- apply(inprods, 1:2, sum)
   values <- pca$values[components]
   T2 <- colSums(t(scores^2) / values)
   variables <- dimnames(inprods)[[3]]
-  obs <- if (is.null(newdata_scaled)) pca$data$fdnames[[2]] else newdata_scaled$fdnames[[2]]
-  contribution <- sapply(variables, function(variable) {
+  obs <- if (is.null(newdata_scaled)) {
+    pca$data$fdnames[[2]]
+    } else {
+      newdata_scaled$fdnames[[2]]
+    }
+  contribution <- vapply(variables, function(variable) {
     rowSums(t(t(inprods[, , variable] * scores) / values))
-  })
+  }, numeric(length(obs)))
   contribution <- matrix(contribution,
                          nrow = length(obs),
                          ncol = length(variables))
@@ -421,7 +427,16 @@ get_T2_spe <- function(pca, components, newdata_scaled = NULL) {
 
   res_fd <- mfd(res_fd$coefs, res_fd$basis, res_fd$fdnames, B = res_fd$basis$B)
 
-  cont_spe <- inprod_mfd_diag(res_fd)
+  if (!absolute_error) {
+    cont_spe <- inprod_mfd_diag(res_fd)
+  } else {
+    rg <- pca$data$basis$rangeval
+    PP <- 200
+    xseq <- seq(rg[1], rg[2], l = PP)
+    yy <- eval.fd(xseq, res_fd)
+    cont_spe <- apply(abs(yy), 2:3, sum) / PP
+  }
+
   rownames(cont_spe) <- obs
   colnames_cont_spe <- paste0("contribution_spe_", variables)
   spe <- rowSums(cont_spe)
@@ -441,7 +456,8 @@ pca.fd_inprods_faster <- function (fdobj,
                                    harmfdPar = fdPar(fdobj),
                                    centerfns = TRUE) {
   if (!(is.fd(fdobj) || is.fdPar(fdobj)))
-    stop("First argument is neither a functional data or a functional parameter object.")
+    stop("First argument is neither a functional data
+         or a functional parameter object.")
   if (is.fdPar(fdobj))
     fdobj <- fdobj$fd
 
@@ -473,8 +489,8 @@ pca.fd_inprods_faster <- function (fdobj,
   if (ndim == 3) {
     nvar <- coefd[3]
     ctemp <- matrix(0, nvar * nbasis, nrep)
-    for (j in 1:nvar) {
-      index <- 1:nbasis + (j - 1) * nbasis
+    for (j in seq_len(nvar)) {
+      index <- seq_len(nbasis) + (j - 1) * nbasis
       ctemp[index, ] <- coef[, , j]
     }
   }
@@ -492,19 +508,58 @@ pca.fd_inprods_faster <- function (fdobj,
   Mmatinv <- solve(Mmat)
   Wmat <- crossprod(t(ctemp))/nrep
   if (identical(harmbasis, basisobj)) {
-    Jmat <- inprod.bspline(fd(diag(harmbasis$nbasis), harmbasis))
-  } else Jmat = inprod.bspline(fd(diag(harmbasis$nbasis), harmbasis),
-                               fd(diag(harmbasis$nbasis), basisobj))
-  MIJW = crossprod(Mmatinv, Jmat)
+    if (!is.null(basisobj$B)) {
+      Jmat <- basisobj$B
+    } else {
+      if (basisobj$type == "bspline") {
+        Jmat <- inprod.bspline(fd(diag(basisobj$nbasis), basisobj))
+      }
+      if (basisobj$type == "fourier") {
+        Jmat <- diag(basisobj$nbasis)
+      }
+      if (basisobj$type == "const") {
+        Jmat <- matrix(diff(harmbasis$rangeval))
+      }
+      if (basisobj$type == "expon") {
+        out_mat <- outer(basisobj$params, basisobj$params, "+")
+        exp_out_mat <- exp(out_mat)
+        Jmat <- (exp_out_mat ^ basisobj$rangeval[2] -
+                   exp_out_mat ^ basisobj$rangeval[1]) / out_mat
+        Jmat[out_mat == 0] <- diff(basisobj$rangeval)
+      }
+      if (basisobj$type == "monom") {
+        out_mat <- outer(basisobj$params, basisobj$params, "+") + 1
+        Jmat <- (basisobj$rangeval[2] ^ out_mat -
+                   basisobj$rangeval[1] ^ out_mat) / out_mat
+        Jmat[out_mat == 0] <- diff(basisobj$rangeval)
+      }
+      if (basisobj$type == "polygonal") {
+        Jmat <- inprod_fd(fd(diag(basisobj$nbasis), basisobj),
+                          fd(diag(basisobj$nbasis), basisobj))
+      }
+      if (basisobj$type == "power") {
+        out_mat <- outer(basisobj$params, basisobj$params, "+") + 1
+        Jmat <- (basisobj$rangeval[2] ^ out_mat -
+                   basisobj$rangeval[1] ^ out_mat) / out_mat
+        Jmat[out_mat == 0] <-
+          log(basisobj$rangeval[2]) - log(basisobj$rangeval[1])
+      }
+    }
+  } else {
+    Jmat <- inprod_fd(fd(diag(harmbasis$nbasis), harmbasis),
+                      fd(diag(basisobj$nbasis), basisobj))
+  }
+
+  MIJW <- crossprod(Mmatinv, Jmat)
   if (nvar == 1) {
-    Cmat = MIJW %*% Wmat %*% t(MIJW)
+    Cmat <- MIJW %*% Wmat %*% t(MIJW)
   }
   else {
-    Cmat = matrix(0, nvar * nhbasis, nvar * nhbasis)
-    for (i in 1:nvar) {
-      indexi <- 1:nbasis + (i - 1) * nbasis
-      for (j in 1:nvar) {
-        indexj <- 1:nbasis + (j - 1) * nbasis
+    Cmat <- matrix(0, nvar * nhbasis, nvar * nhbasis)
+    for (i in seq_len(nvar)) {
+      indexi <- seq_len(nbasis) + (i - 1) * nbasis
+      for (j in seq_len(nvar)) {
+        indexj <- seq_len(nbasis) + (j - 1) * nbasis
         Cmat[indexi, indexj] <- MIJW %*% Wmat[indexi,
                                               indexj] %*% t(MIJW)
       }
@@ -513,30 +568,36 @@ pca.fd_inprods_faster <- function (fdobj,
   Cmat <- (Cmat + t(Cmat))/2
   result <- eigen(Cmat)
   eigvalc <- result$values
-  eigvecc <- as.matrix(result$vectors[, 1:nharm])
+  eigvecc <- as.matrix(result$vectors[, seq_len(nharm)])
   sumvecc <- apply(eigvecc, 2, sum)
   eigvecc[, sumvecc < 0] <- -eigvecc[, sumvecc < 0]
-  varprop <- eigvalc[1:nharm]/sum(eigvalc)
+  varprop <- eigvalc[seq_len(nharm)]/sum(eigvalc)
   if (nvar == 1) {
     harmcoef <- Mmatinv %*% eigvecc
   }
   else {
     harmcoef <- array(0, c(nbasis, nharm, nvar))
-    for (j in 1:nvar) {
-      index <- 1:nbasis + (j - 1) * nbasis
+    for (j in seq_len(nvar)) {
+      index <- seq_len(nbasis) + (j - 1) * nbasis
       temp <- eigvecc[index, ]
       harmcoef[, , j] <- Mmatinv %*% temp
     }
   }
   harmnames <- rep("", nharm)
-  for (i in 1:nharm) harmnames[i] <- paste("PC", i, sep = "")
+  for (i in seq_len(nharm)) harmnames[i] <- paste("PC", i, sep = "")
   if (length(coefd) == 2)
     harmnames <- list(coefnames[[1]], harmnames, "values")
   if (length(coefd) == 3)
     harmnames <- list(coefnames[[1]], harmnames, coefnames[[3]])
   harmfd <- fd(harmcoef, harmbasis, harmnames)
   if (is.null(fdobj$basis$B)) {
-    B <- inprod.bspline(fd(diag(fdobj$basis$nbasis), fdobj$basis))
+    if (fdobj$basis$type == "bspline") {
+      B <- inprod.bspline(fd(diag(fdobj$basis$nbasis), fdobj$basis))
+    }
+    if (fdobj$basis$type == "fourier") {
+      B <- diag(fdobj$basis$nbasis)
+    }
+
   } else {
     B <- fdobj$basis$B
   }
@@ -544,18 +605,18 @@ pca.fd_inprods_faster <- function (fdobj,
   if (nvar == 1) {
     if (identical(fdobj$basis, harmfd$basis)) {
       harmscr <- t(fdobj$coefs) %*% B %*% harmfd$coefs
-    } else harmscr <- inprod(fdobj, harmfd)
+    } else harmscr <- inprod_fd(fdobj, harmfd)
   }
   else {
     harmscr <- array(0, c(nrep, nharm, nvar))
     coefarray <- fdobj$coefs
     harmcoefarray <- harmfd$coefs
-    for (j in 1:nvar) {
+    for (j in seq_len(nvar)) {
       fdobjj <- fd(as.matrix(coefarray[, , j]), basisobj)
       harmfdj <- fd(as.matrix(harmcoefarray[, , j]), basisobj)
       if (identical(fdobjj$basis, harmfdj$basis)) {
         harmscr[, , j] <- t(fdobjj$coefs) %*% B %*% harmfdj$coefs
-      } else harmscr[, , j] <- inprod(fdobjj, harmfdj)
+      } else harmscr[, , j] <- inprod_fd(fdobjj, harmfdj)
     }
   }
   pcafd <- list(harmfd, eigvalc, harmscr, varprop, meanfd)

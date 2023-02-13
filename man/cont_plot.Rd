@@ -18,7 +18,7 @@ phase II data set to be plotted, i.e. 1 for the first observation,
 \item{which_plot}{A character vector.
 Each value indicates which contribution you want to plot:
 
-"T2" indicates contribution to the Hotelling's T^2 statistic,
+"T2" indicates contribution to the Hotelling's T2 statistic,
 
 "spe" indicates contribution to the squared prediction error statistic.}
 
@@ -49,16 +49,20 @@ mfdobj_x <- get_mfd_list(air[fun_covariates],
                          lambda = 1e-2)
 y <- rowMeans(air$NO2)
 y1 <- y[1:60]
+ytuning <- y[61:90]
 y2 <- y[91:100]
 mfdobj_x1 <- mfdobj_x[1:60]
 mfdobj_x_tuning <- mfdobj_x[61:90]
 mfdobj_x2 <- mfdobj_x[91:100]
 mod <- sof_pc(y1, mfdobj_x1)
-cclist <- control_charts_sof_pc(mod = mod,
-                                y_test = y2,
-                                mfdobj_x_test = mfdobj_x2,
-                                mfdobj_x_tuning = mfdobj_x_tuning)
+cclist <- regr_cc_sof(object = mod,
+                      y_new = y2,
+                      mfdobj_x_new = mfdobj_x2,
+                      y_tuning = y_tuning,
+                      mfdobj_x_tuning = mfdobj_x_tuning,
+                      include_covariates = TRUE)
 get_ooc(cclist)
 cont_plot(cclist, 3)
+
 
 }

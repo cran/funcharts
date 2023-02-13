@@ -1,7 +1,7 @@
-#' Calculate limits of T^2 and SPE control charts on
+#' Calculate limits of T2 and SPE control charts on
 #' multivariate functional data
 #'
-#' Calculate limits of Hotelling T^2 and
+#' Calculate limits of Hotelling T2 and
 #' squared prediction error (SPE) control charts
 #' on multivariate functional data.
 #' A training data set has already been used to fit a \code{pca_mfd} object.
@@ -23,7 +23,7 @@
 #' Set of multivariate functional principal components
 #' retained into the MFPCA model.
 #' These components are used to calculate the projected observations and
-#' the Hotelling's T^2 statistic,
+#' the Hotelling's T2 statistic,
 #' while the difference between the original functional data and the
 #' projected ones (based on the
 #' selected components) is used to calculate the SPE statistic.
@@ -43,12 +43,12 @@
 #' returning the limits of the monitoring statistics:
 #'
 #' * \code{T2_lim} gives the upper control limit of the
-#' Hotelling's T^2 control chart,
+#' Hotelling's T2 control chart,
 #'
 #' * one \code{contribution_T2_*_lim} column per each
 #' functional variable giving the
 #' limits of the contribution of that variable to
-#' the Hotelling's T^2 statistic,
+#' the Hotelling's T2 statistic,
 #'
 #' * \code{spe_lim} gives the upper control limit of the SPE control chart
 #'
@@ -73,7 +73,8 @@
 calculate_limits <- function(pca,
                              tuning_data = NULL,
                              components,
-                             alpha = list(T2 = .025, spe = .025)) {
+                             alpha = list(T2 = .025, spe = .025),
+                             absolute_error = FALSE) {
 
   if (!is.list(pca)) {
     stop("pca must be a list produced by pca_mfd.")
@@ -90,14 +91,20 @@ calculate_limits <- function(pca,
   }
 
   if (!is.null(tuning_data)) {
-    tuning_data <- scale_mfd(tuning_data,
-                                    center = pca$center_fd,
-                                    scale = if (pca$scale) pca$scale_fd else FALSE)
+    tuning_data <-
+      scale_mfd(tuning_data,
+                center = pca$center_fd,
+                scale = if (pca$scale) pca$scale_fd else FALSE)
   }
 
-  T2_spe <- get_T2_spe(pca, components, newdata_scaled = tuning_data)
-  T2 <- select(T2_spe, "T2", contains("contribution_T2", ignore.case = FALSE))
-  spe <- select(T2_spe, "spe", contains("contribution_spe", ignore.case = FALSE))
+  T2_spe <- get_T2_spe(pca,
+                       components,
+                       newdata_scaled = tuning_data,
+                       absolute_error = absolute_error)
+  T2 <- select(T2_spe, "T2", contains("contribution_T2",
+                                      ignore.case = FALSE))
+  spe <- select(T2_spe, "spe", contains("contribution_spe",
+                                        ignore.case = FALSE))
 
   obs <- if (!is.null(tuning_data)) {
     tuning_data$fdnames[[2]]
@@ -119,11 +126,11 @@ calculate_limits <- function(pca,
 
 }
 
-#' Calculate limits of T^2 and SPE control charts on multivariate
+#' Calculate limits of T2 and SPE control charts on multivariate
 #' functional data using
 #' cross-validation
 #'
-#' Calculate limits of Hotelling T^2 and
+#' Calculate limits of Hotelling T2 and
 #' squared prediction error (SPE) control charts
 #' on multivariate functional data using cross-validation.
 #' In the case few data are available to use a separate tuning data set in the
@@ -132,7 +139,7 @@ calculate_limits <- function(pca,
 #' training data set and used as tuning data set,
 #' while the remaining observations are used as training data set
 #' to estimate the multivariate functional principal component analysis model.
-#' Then the T^2 and SPE monitoring statistics can be
+#' Then the T2 and SPE monitoring statistics can be
 #' calculated on the tuning data
 #' that have been removed from the model and control limits can be
 #' calculated on the basis
@@ -146,7 +153,7 @@ calculate_limits <- function(pca,
 #' Set of multivariate functional principal components
 #' retained into the MFPCA model.
 #' These components are used to calculate the projected observations
-#' and the Hotelling's T^2 statistic,
+#' and the Hotelling's T2 statistic,
 #' while the difference between the original functional data
 #' and the projected ones (based on the
 #' selected components) is used to calculate the SPE statistic.
@@ -178,12 +185,12 @@ calculate_limits <- function(pca,
 #' limits of the monitoring statistics:
 #'
 #' * \code{T2_lim} gives the upper control limit of the
-#' Hotelling's T^2 control chart,
+#' Hotelling's T2 control chart,
 #'
 #' * one \code{contribution_T2_*_lim} column per each
 #' functional variable giving the
 #' limits of the contribution of that variable to the
-#' Hotelling's T^2 statistic,
+#' Hotelling's T2 statistic,
 #'
 #' * \code{spe_lim} gives the upper control limit of the SPE control chart
 #'
@@ -199,11 +206,13 @@ calculate_cv_limits <- function(pca,
                                 seed,
                                 nfold = 5,
                                 alpha = list(T2 = .025, spe = .025),
-                                ncores = 1) {
+                                ncores = 1,
+                                absolute_error = FALSE) {
 
   if (!missing(seed)) {
     warning(paste0("argument seed is deprecated; ",
-                   "please use set.seed() before calling the function instead."),
+                   "please use set.seed()
+                   before calling the function instead."),
             call. = FALSE)
   }
 
@@ -214,7 +223,9 @@ calculate_cv_limits <- function(pca,
   mfdobj <- pca$data
   nobs <- dim(mfdobj$coefs)[2]
   nvar <- dim(mfdobj$coefs)[3]
-  folds <- split(1:nobs, sample(cut(1:nobs, nfold, labels = FALSE)))
+  folds <- split(seq_len(nobs), sample(cut(seq_len(nobs),
+                                           nfold,
+                                           labels = FALSE)))
 
   single_cv <- function(ii) {
     fd_train <- mfdobj[- folds[[ii]]]
@@ -223,7 +234,8 @@ calculate_cv_limits <- function(pca,
     pca_cv <- pca_mfd(fd_train, scale = pca$scale, nharm = max(components))
     control_charts_pca(pca = pca_cv,
                        components = components,
-                       newdata = fd_test)
+                       newdata = fd_test,
+                       absolute_error = absolute_error)
 
     # T2 <- get_T2(pca_cv, components, newdata = fd_test)
     # spe <- get_spe(pca_cv, components, newdata = fd_test)
@@ -231,10 +243,10 @@ calculate_cv_limits <- function(pca,
     # list(id = fd_test$fdnames[[2]], T2 = T2, spe = spe)
   }
   if (ncores == 1) {
-    statistics_cv <- lapply(1:nfold, single_cv)
+    statistics_cv <- lapply(seq_len(nfold), single_cv)
   } else {
     if (.Platform$OS.type == "unix") {
-      statistics_cv <- mclapply(1:nfold, single_cv, mc.cores = ncores)
+      statistics_cv <- mclapply(seq_len(nfold), single_cv, mc.cores = ncores)
     } else {
       cl <- makeCluster(ncores)
       clusterExport(cl,
@@ -243,14 +255,14 @@ calculate_cv_limits <- function(pca,
                       "pca",
                       "components"),
                     envir = environment())
-      statistics_cv <- parLapply(cl, 1:nfold, single_cv)
+      statistics_cv <- parLapply(cl, seq_len(nfold), single_cv)
       stopCluster(cl)
     }
   }
 
   statistics_cv <- statistics_cv %>%
     bind_rows() %>%
-    arrange(id)
+    arrange("id")
 
   cont_T2 <- statistics_cv %>%
     dplyr::select(!contains("_lim")) %>%
@@ -263,8 +275,12 @@ calculate_cv_limits <- function(pca,
   T2_lim <- data.frame(T2 = quantile(statistics_cv$T2, 1 - alpha$T2))
   spe_lim <- data.frame(spe = quantile(statistics_cv$spe, 1 - alpha$T2))
 
-  cont_T2_lim  <- apply(cont_T2, 2, function(x) quantile(x, 1 - alpha$T2 / nvar))
-  cont_spe_lim <-  apply(cont_spe, 2, function(x) quantile(x, 1 - alpha$spe / nvar))
+  cont_T2_lim  <- apply(cont_T2, 2, function(x) {
+    quantile(x, 1 - alpha$T2 / nvar)
+    })
+  cont_spe_lim <-  apply(cont_spe, 2, function(x) {
+    quantile(x, 1 - alpha$spe / nvar)
+    })
 
   cont_T2_lim <- as.data.frame(t(cont_T2_lim))
   cont_spe_lim <- as.data.frame(t(cont_spe_lim))
@@ -303,6 +319,7 @@ calculate_cv_limits <- function(pca,
 #' signaled as possibly anomalous.
 #' @export
 #' @examples
+#' \dontrun{
 #' library(funcharts)
 #' data("air")
 #' air <- lapply(air, function(x) x[1:10, , drop = FALSE])
@@ -310,6 +327,7 @@ calculate_cv_limits <- function(pca,
 #' mfdobj_x <- get_mfd_list(air[fun_covariates], lambda = 1e-2)
 #' y <- rowMeans(air$NO2)
 #' get_sof_pc_outliers(y, mfdobj_x)
+#' }
 #'
 get_sof_pc_outliers <- function(y, mfdobj) {
 
@@ -326,31 +344,62 @@ get_sof_pc_outliers <- function(y, mfdobj) {
 
 }
 
-#' #' Title
-#' #'
-#' #' @param mfdobj
-#' #' @param ncores
-#' #'
-#' #' @return
-#' #' @export
-#' #'
-#' get_outliers_depth <- function(mfdobj, ncores = 1) {
-#'
-#'   if (!is.mfd(mfdobj)) {
-#'     stop("First argument must be a mfd object.")
-#'   }
-#'
-#'   variables <- mfdobj$fdnames[[3]]
-#'   nvar <- length(variables)
-#'   domain <- mfdobj$basis$rangeval
-#'   evalarg <- seq(domain[1], domain[2], length.out = 100)
-#'   X <- eval.fd(evalarg, mfdobj)
-#'   outliers <- mclapply(1:nvar, function(jj) {
-#'     fdo_jj <- fdata(t(X[, , 1]), evalarg)
-#'     rownames(fdo_jj$data) <- mfdobj$fdnames[[2]]
-#'     outliers.depth.pond(fdo_jj, nb = 50)$outliers
-#'   }, mc.cores = ncores)
-#'   sort(unique(unlist(outliers)))
-#'
-#' }
 
+#' Get outliers from multivariate functional data
+#'
+#' Get outliers from multivariate functional data
+#' using the functional boxplot with the
+#' modified band depth of Sun et al. (2011, 2012).
+#' This function relies on the \code{fbplot} function
+#' of the \code{roahd} package.
+#'
+#' @param mfdobj A multivariate functional data object of class mfd
+#'
+#' @return
+#' A numeric vector with the indexes of the functional observations
+#' signaled as outliers.
+#' @export
+#'
+#' @examples
+#' library(funcharts)
+#' data("air")
+#' air <- lapply(air, function(x) x[1:20, , drop = FALSE])
+#' fun_covariates <- c("CO", "temperature")
+#' mfdobj_x <- get_mfd_list(air[fun_covariates], lambda = 1e-2)
+#' get_outliers_mfd(mfdobj_x)
+#'
+#' @references
+#' * Sun, Y., & Genton, M. G. (2011). Functional boxplots.
+#' \emph{Journal of Computational and Graphical Statistics}, 20(2), 316-334.
+#' * Sun, Y., & Genton, M. G. (2012).
+#' Adjusted functional boxplots for spatio‐temporal data visualization
+#' and outlier detection. \emph{Environmetrics}, 23(1), 54-64.
+#'
+get_outliers_mfd <- function(mfdobj) {
+
+  xseq <- seq(0, 1, l = 200)
+  nvar <- dim(mfdobj$coefs)[3]
+  nobs <- dim(mfdobj$coefs)[2]
+  if (nvar == 1) {
+    fd_obj <- fd(mfdobj$coefs[, , 1], mfdobj$basis)
+    fd_eval <- eval.fd(xseq, fd_obj)
+    fData_obj <- roahd::fData(xseq, t(fd_eval))
+  } else {
+    fd_obj <- fd(mfdobj$coefs, mfdobj$basis)
+    fd_eval <- eval.fd(xseq, fd_obj)
+    fd_eval_list <- lapply(seq_len(nvar), function(ii) t(fd_eval[, , ii]))
+    fData_obj <- roahd::mfData(xseq, fd_eval_list)
+  }
+  is_outlier <- rep(FALSE, nobs)
+  new_outliers <- 100
+  while (length(new_outliers) > 0) {
+    fbplot_obj <- roahd::fbplot(fData_obj[!is_outlier], display = FALSE)
+    new_outliers <- fbplot_obj$ID_outliers
+    is_outlier[!is_outlier][new_outliers] <- TRUE
+  }
+  # fbplot_obj <- roahd::fbplot(fData_obj[!is_outlier], display = TRUE)
+  outliers <- which(is_outlier)
+  names(outliers) <- mfdobj$fdnames[[2]][outliers]
+  return(outliers)
+
+}

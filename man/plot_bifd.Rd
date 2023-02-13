@@ -4,11 +4,24 @@
 \alias{plot_bifd}
 \title{Plot a Bivariate Functional Data Object.}
 \usage{
-plot_bifd(bifd_obj)
+plot_bifd(bifd_obj, type_plot = "raster", phi = 40, theta = 40)
 }
 \arguments{
 \item{bifd_obj}{A bivariate functional data object of class bifd,
 containing one single replication.}
+
+\item{type_plot}{a character value
+If "raster", it plots the bivariate functional data object
+as a raster image.
+If "contour", it produces a contour plot.
+If "perspective", it produces a perspective plot.
+Default value is "raster".}
+
+\item{phi}{If \code{type_plot=="perspective"}, it is the \code{phi} argument
+of the function \code{plot3D::persp3D}.}
+
+\item{theta}{If \code{type_plot=="perspective"}, it is the \code{theta} argument
+of the function \code{plot3D::persp3D}.}
 }
 \value{
 A ggplot with a geom_tile layer providing a plot of the
