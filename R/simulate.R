@@ -132,7 +132,7 @@ sim_funcharts <- function(nobs1 = 1000, nobs_tun = 1000, nobs2 = 60) {
 #' there are five possibilities: "0" if there is no shift,
 #' "A", "B", "C" or "D" for the corresponding shift types
 #' shown in Centofanti et al. (2021).
-#' By default, shift is not applied to any functional coviarate.
+#' By default, shift is not applied to any functional covariate.
 #' @param correlation_type_y
 #' A character vector indicating the type of correlation function for
 #' the functional response.
@@ -327,10 +327,12 @@ simulate_mfd <- function(nobs = 1000,
                          P = P,
                          correlation_type = correlation_type_y,
                          n_comp = n_comp_y)
+  ey$values <- pmax(ey$values, 0)
   e <- generate_cov_str(p = p,
                         P = P,
                         correlation_type = correlation_type_x,
                         n_comp = n_comp_x)
+  e$values <- pmax(e$values, 0)
   x_seq <- seq(0, 1, l = P)
 
   b_perfect <- sqrt(ey$values / e$values[seq_along(ey$values)])
@@ -349,7 +351,8 @@ simulate_mfd <- function(nobs = 1000,
   var_yexp <- rowSums(t(t(ey$vectors^2) * (b^2 * e$values[1:10])))
   vary <- rowSums(t(t(ey$vectors^2) * ey$values))
   R2_check <- sum(var_yexp / vary) * w
-  B <- rbind(diag(b), matrix(0, nrow = 40, ncol = 10))
+  dim_additional <- n_comp_x - length(b)
+  B <- rbind(diag(b), matrix(0, nrow = dim_additional, ncol = 10))
   eigeps <- diag(diag(ey$values) - t(B) %*% diag(e$values) %*% B)
 
   csi_X <- rnorm(n = length(e$values) * nobs,
