@@ -1,6 +1,6 @@
-59e57c0c50baff859da018558f567d11 *DESCRIPTION
+2b06ce109a83fe36f2050f109d6e5cce *DESCRIPTION
 dd1073f482bc1511a61b630417818117 *NAMESPACE
-5c39dab3cb9de065ba88d156e42fe92c *NEWS.md
+a52e98f1a7d2237529c28af484125e43 *NEWS.md
 a71d8cfd3c1d2338f17157625acb03cc *R/00_mfd.R
 75363eea60b2e8c028358029639bee5b *R/01_pca.mfd.R
 d431b1b0844496c4b56f533b179f6d6e *R/02_fof_pc.R
@@ -15,7 +15,7 @@ cbfe3ddd94d48082fb13b8d12082e4fc *R/real_time_01_pca.mfd.R
 56ddaecbf6ea5a206c39c7ce020623b2 *R/real_time_02_fof_pc.R
 ac8595a9b716117f3db39b8d236e2e4e *R/real_time_02_sof_pc.R
 3428a6d487cbfc71cc6eadc46779e1e0 *R/real_time_04_phaseII.R
-c7976a539bc148beeef02c61ba3b96a5 *R/rmfcc.R
+29b8ea78798abbd2b6ca885bc61fa6ef *R/rmfcc.R
 c50d9059e2adf7bde0a2527d41526562 *R/simulate.R
 edcff41953b6bfec186fb40e67f25be7 *R/sysdata.rda
 f1bdb678b5db48879e2cb09e0ea9c72c *README.md
@@ -33,7 +33,7 @@ f4d2b029bedb7d021e03dd25c32321da *inst/doc/centofanti2021.html
 4415d7b5aafeb014f7019b0ae2059ab3 *inst/doc/mfd.html
 55ebd84d2c2307ee31e175a944a50d24 *man/RoMFCC_PhaseI.Rd
 a9f91ffcab5c60c2bc902bc42b5a1b41 *man/RoMFCC_PhaseII.Rd
-65e06d84559cd4b3dad18125cb99dc63 *man/RoMFDI.Rd
+f482e51f6b755ae9e014fddbdf9117b1 *man/RoMFDI.Rd
 b7dd7728f2202b15a6d8f2731db5b6ce *man/air.Rd
 df706e3e9efcb0c32958adc589a0e8d9 *man/cbind_mfd.Rd
 cded41e03e13679085920d177443ef64 *man/cont_plot.Rd
@@ -45,7 +45,7 @@ aa0ebbe1e7c7713f0a732b6f560ed4cb *man/control_charts_pca_mfd_real_time.Rd
 b461ae2b9958b170b8acbffef5ce1302 *man/fof_pc.Rd
 e5cdc2ea23f346921858685cabb45d98 *man/fof_pc_real_time.Rd
 903977693403c3a1deef068b6b14a5ba *man/funcharts-package.Rd
-8f2ace575cda4101e6e19b90d1048aaf *man/functional_filter.Rd
+2a420fda16b854d1b2eef3010644b79c *man/functional_filter.Rd
 d970dfdb4c5c4693deaa85e39829451b *man/get_mfd_array.Rd
 b4751f8faad9b259e85ac8e5ead22ae2 *man/get_mfd_array_real_time.Rd
 6b8c7f3dd5b75baacb4d1576a7f5cb4e *man/get_mfd_df.Rd
@@ -88,12 +88,13 @@ c145dfe95cd6ffac0f4057bd7776ddb6 *man/sof_pc_real_time.Rd
 09e177559b73f27e24d657cea2e635b2 *man/tensor_product_mfd.Rd
 4d489f1576ba8e1ac103705e1a9c0254 *man/which_ooc.Rd
 232f45671b59690efccd3e8c240c9972 *tests/testthat.R
+2175610ff546504d33585603e44c34e9 *tests/testthat/Rplots.pdf
 82598430b04d1755dbe17d6f38c37331 *tests/testthat/test_fof_pc.R
 2c58edbb4458f8d2db153ca83ca53fbc *tests/testthat/test_mfd.R
 fb77a5bbef394b931910a06ab3673a49 *tests/testthat/test_pca_mfd.R
 556ade778fdad7215fc683f571063961 *tests/testthat/test_phaseI.R
 0dd061d4d8b17360c219b07d55a46da0 *tests/testthat/test_phaseII.R
-3ac399656720c87cb931bbb381dc3c3d *tests/testthat/test_romfcc.R
+1e07748353ddbccef1ed030474eeb060 *tests/testthat/test_romfcc.R
 61784da141f9f8da7dc32111ff4c6720 *tests/testthat/test_simulate.R
 189676d8fada0c576496f9984d67819d *tests/testthat/test_sof_pc.R
 5e11cf3a90f908328d796953f8b040b7 *vignettes/capezza2020-plot_beta-1.png
