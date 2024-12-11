@@ -115,6 +115,100 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// der_c
+double der_c(double asn, double smin, double smax, double der_0);
+RcppExport SEXP _funcharts_der_c(SEXP asnSEXP, SEXP sminSEXP, SEXP smaxSEXP, SEXP der_0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type asn(asnSEXP);
+    Rcpp::traits::input_parameter< double >::type smin(sminSEXP);
+    Rcpp::traits::input_parameter< double >::type smax(smaxSEXP);
+    Rcpp::traits::input_parameter< double >::type der_0(der_0SEXP);
+    rcpp_result_gen = Rcpp::wrap(der_c(asn, smin, smax, der_0));
+    return rcpp_result_gen;
+END_RCPP
+}
+// loss_c
+double loss_c(double z, double y, double z1, double y1, double alpha, double der_h);
+RcppExport SEXP _funcharts_loss_c(SEXP zSEXP, SEXP ySEXP, SEXP z1SEXP, SEXP y1SEXP, SEXP alphaSEXP, SEXP der_hSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type z(zSEXP);
+    Rcpp::traits::input_parameter< double >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type z1(z1SEXP);
+    Rcpp::traits::input_parameter< double >::type y1(y1SEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type der_h(der_hSEXP);
+    rcpp_result_gen = Rcpp::wrap(loss_c(z, y, z1, y1, alpha, der_h));
+    return rcpp_result_gen;
+END_RCPP
+}
+// DP3
+List DP3(int N, int M, arma::vec l, arma::vec u, arma::mat range_x, arma::mat range_tem, arma::mat grid_t, List x_fd_std, List der_x_fd_std, double delta_x, arma::vec template_eval, arma::vec der_template_eval, double smin, double smax, double alpha, double lambda, double der_0, Rcpp::Function eval_fd_c);
+RcppExport SEXP _funcharts_DP3(SEXP NSEXP, SEXP MSEXP, SEXP lSEXP, SEXP uSEXP, SEXP range_xSEXP, SEXP range_temSEXP, SEXP grid_tSEXP, SEXP x_fd_stdSEXP, SEXP der_x_fd_stdSEXP, SEXP delta_xSEXP, SEXP template_evalSEXP, SEXP der_template_evalSEXP, SEXP sminSEXP, SEXP smaxSEXP, SEXP alphaSEXP, SEXP lambdaSEXP, SEXP der_0SEXP, SEXP eval_fd_cSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type N(NSEXP);
+    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type l(lSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type u(uSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type range_x(range_xSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type range_tem(range_temSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type grid_t(grid_tSEXP);
+    Rcpp::traits::input_parameter< List >::type x_fd_std(x_fd_stdSEXP);
+    Rcpp::traits::input_parameter< List >::type der_x_fd_std(der_x_fd_stdSEXP);
+    Rcpp::traits::input_parameter< double >::type delta_x(delta_xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type template_eval(template_evalSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type der_template_eval(der_template_evalSEXP);
+    Rcpp::traits::input_parameter< double >::type smin(sminSEXP);
+    Rcpp::traits::input_parameter< double >::type smax(smaxSEXP);
+    Rcpp::traits::input_parameter< double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type der_0(der_0SEXP);
+    Rcpp::traits::input_parameter< Rcpp::Function >::type eval_fd_c(eval_fd_cSEXP);
+    rcpp_result_gen = Rcpp::wrap(DP3(N, M, l, u, range_x, range_tem, grid_t, x_fd_std, der_x_fd_std, delta_x, template_eval, der_template_eval, smin, smax, alpha, lambda, der_0, eval_fd_c));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_path_list1
+arma::field<arma::mat> get_path_list1(int N, int M, arma::mat range_x, arma::mat range_tem, arma::vec grid_t, arma::vec ind_end1, List grid_search, arma::mat P);
+RcppExport SEXP _funcharts_get_path_list1(SEXP NSEXP, SEXP MSEXP, SEXP range_xSEXP, SEXP range_temSEXP, SEXP grid_tSEXP, SEXP ind_end1SEXP, SEXP grid_searchSEXP, SEXP PSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type N(NSEXP);
+    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type range_x(range_xSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type range_tem(range_temSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type grid_t(grid_tSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type ind_end1(ind_end1SEXP);
+    Rcpp::traits::input_parameter< List >::type grid_search(grid_searchSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type P(PSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_path_list1(N, M, range_x, range_tem, grid_t, ind_end1, grid_search, P));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_path_list2
+arma::field<arma::mat> get_path_list2(int N, int M, arma::mat range_x, arma::mat range_tem, arma::vec grid_t, arma::vec ind_end2, List grid_search, arma::mat P);
+RcppExport SEXP _funcharts_get_path_list2(SEXP NSEXP, SEXP MSEXP, SEXP range_xSEXP, SEXP range_temSEXP, SEXP grid_tSEXP, SEXP ind_end2SEXP, SEXP grid_searchSEXP, SEXP PSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type N(NSEXP);
+    Rcpp::traits::input_parameter< int >::type M(MSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type range_x(range_xSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type range_tem(range_temSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type grid_t(grid_tSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type ind_end2(ind_end2SEXP);
+    Rcpp::traits::input_parameter< List >::type grid_search(grid_searchSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type P(PSEXP);
+    rcpp_result_gen = Rcpp::wrap(get_path_list2(N, M, range_x, range_tem, grid_t, ind_end2, grid_search, P));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_funcharts_score", (DL_FUNC) &_funcharts_score, 4},
@@ -124,6 +218,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_funcharts_calculate_T2", (DL_FUNC) &_funcharts_calculate_T2, 3},
     {"_funcharts_calculate_T2_vec", (DL_FUNC) &_funcharts_calculate_T2_vec, 3},
     {"_funcharts_get_RL_cpp", (DL_FUNC) &_funcharts_get_RL_cpp, 10},
+    {"_funcharts_der_c", (DL_FUNC) &_funcharts_der_c, 4},
+    {"_funcharts_loss_c", (DL_FUNC) &_funcharts_loss_c, 6},
+    {"_funcharts_DP3", (DL_FUNC) &_funcharts_DP3, 18},
+    {"_funcharts_get_path_list1", (DL_FUNC) &_funcharts_get_path_list1, 8},
+    {"_funcharts_get_path_list2", (DL_FUNC) &_funcharts_get_path_list2, 8},
     {NULL, NULL, 0}
 };
 

@@ -108,7 +108,7 @@
 #' @references
 #' Capezza, C., Capizzi, G., Centofanti, F., Lepore, A., Palumbo, B. (2024)
 #' An Adaptive Multivariate Functional EWMA Control Chart.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' To appear in \emph{Journal of Quality Technology}, <doi:10.1080/00224065.2024.2383674>.
 #'
 #' Lucas, J. M., Saccucci, M. S. (1990)
 #' Exponentially weighted moving average control schemes:
@@ -196,6 +196,7 @@
 #' }
 #'
 #'
+#' @author C. Capezza, F. Centofanti
 AMFEWMA_PhaseI <- function(mfdobj,
                            mfdobj_tuning,
                            lambda = NULL,
@@ -523,7 +524,7 @@ AMFEWMA_PhaseI_given_pars <- function(mfdobj,
 #' @references
 #' Capezza, C., Capizzi, G., Centofanti, F., Lepore, A., Palumbo, B. (2024)
 #' An Adaptive Multivariate Functional EWMA Control Chart.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' To appear in \emph{Journal of Quality Technology}, <doi:10.1080/00224065.2024.2383674>.
 #'
 #' @return
 #' A list with the following elements.
@@ -580,7 +581,7 @@ AMFEWMA_PhaseI_given_pars <- function(mfdobj,
 #' plot_control_charts(cc$cc, nobsI = 100)
 #' }
 #'
-#'
+#' @author C. Capezza, F. Centofanti
 AMFEWMA_PhaseII <- function (mfdobj_2,
                              mod_1,
                              n_seq_2 = 1,

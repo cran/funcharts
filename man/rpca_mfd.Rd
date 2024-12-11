@@ -65,11 +65,12 @@ mfdobj$coefs[, 1, ] <- mfdobj$coefs[, 1, ] + 0.05
 rpca <- rpca_mfd(mfdobj) # robust MFPCA
 # plot_pca_mfd(pca, harm = 1) # plot first eigenfunction, affected by outlier
 # plot_pca_mfd(rpca, harm = 1) # plot first eigenfunction in robust case
+
 }
 \references{
 Capezza, C., Centofanti, F., Lepore, A., Palumbo, B. (2024)
 Robust Multivariate Functional Control Charts.
-\emph{Technometrics}, \url{doi:10.1080/00401706.2024.2327346}.
+\emph{Technometrics}, 66(4):531--547, \url{doi:10.1080/00401706.2024.2327346}.
 
 Centofanti, F., Colosimo, B.M., Grasso, M.L., Menafoglio, A., Palumbo, B.,
 Vantini, S. (2023)
@@ -91,4 +92,7 @@ Locantore, N., Marron, J., Simpson, D., Tripoli, N., Zhang, J., Cohen K.,
 K. (1999),
 Robust principal components for functional data.
 \emph{Test}, 8, 1-28. \url{doi:10.1007/BF02595862}
+}
+\author{
+C. Capezza, F. Centofanti
 }
