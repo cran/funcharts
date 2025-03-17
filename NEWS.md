@@ -1,5 +1,14 @@
-# funcharts 1.6.0
+# funcharts 1.7.0
 
+* `AMFCC_PhaseI()` performs Phase I of the Adaptive Multivariate Functional Control Chart of Centofanti et al. (2025).
+* `AMFCC_PhaseII()` performs Phase II of the Adaptive Multivariate Functional Control Chart of Centofanti et al. (2025).
+
+References:
+
+* Centofanti, F., Lepore, A., Palumbo, B. (2025) Adaptive Multivariate Functional Control Chart. 
+Accepted for publication in \emph{Technometrics}.
+
+# funcharts 1.6.0
 
 * `simulate_data_FRTM()` simulates data for real-time monitoring of univariate functional data.
 * `OEBFDTW()` performs Open-end/Open-begin Functional Dynamic Time Warping (OEB-FDTW).
@@ -8,7 +17,7 @@
 * `FRTM_PhaseII()` performs Phase II of the FRTM method.
 * `cov_mfd()` calculates the covariance of multivariate functional data returning a `bifd` object.
 * `cor_mfd()` calculates the correlation of multivariate functional data returning a `bifd` object.
-* `mean_mfd()` calculates the mean of multivariate functional data, returing an `mfd` object.
+* `mean_mfd()` calculates the mean of multivariate functional data, returning an `mfd` object.
 
 References:
 
@@ -23,9 +32,10 @@ References:
 
 References:
 
-* Capezza, C., Capizzi, G., Centofanti, F., Lepore, A., Palumbo, B. (2024)
-An Adaptive Multivariate Functional EWMA Control Chart.
-Accepted for publication in \emph{Journal of Quality Technology}.
+* Capezza, C., Capizzi, G., Centofanti, F., Lepore, A., Palumbo, B. (2025)
+ An Adaptive Multivariate Functional EWMA Control Chart.
+ \emph{Journal of Quality Technology},  57(1):1--15,
+ doi:https://doi.org/10.1080/00224065.2024.2383674.
 
 # funcharts 1.4.1
 
@@ -33,7 +43,10 @@ Accepted for publication in \emph{Journal of Quality Technology}.
 
 References:
 
-* Capezza, C., Centofanti, F., Lepore, A., Palumbo, B. (2024) Robust Multivariate Functional Control Charts. Technometrics, doi:10.1080/00401706.2024.2327346.
+* Capezza, C., Centofanti, F., Lepore, A., Palumbo, B. (2024) 
+Robust Multivariate Functional Control Chart. 
+\emph{Technometrics}, , 66(4):531--547, doi:10.1080/00401706.2024.2327346.
+
 
 # funcharts 1.4.0
 
@@ -45,8 +58,9 @@ References:
 
 References:
 
-* Capezza, C., Centofanti, F., Lepore, A., Palumbo, B. (2024) Robust Multivariate Functional Control Charts. Technometrics, doi:10.1080/00401706.2024.2327346.
-
+* Capezza, C., Centofanti, F., Lepore, A., Palumbo, B. (2024) 
+Robust Multivariate Functional Control Chart. 
+\emph{Technometrics}, , 66(4):531--547, doi:10.1080/00401706.2024.2327346.
 # funcharts 1.3.2
 
 * Updated documentation with the newly published paper, which thoroughly illustrates the funcharts package:
