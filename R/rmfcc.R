@@ -76,7 +76,6 @@
 #' # plot_pca_mfd(pca, harm = 1) # plot first eigenfunction, affected by outlier
 #' # plot_pca_mfd(rpca, harm = 1) # plot first eigenfunction in robust case
 #'
-#' @author C. Capezza, F. Centofanti
 rpca_mfd <- function(mfdobj,
                      center = "fusem", # TRUE, or fusem
                      scale = "funmad", # TRUE, FALSE, or funmad
@@ -337,7 +336,7 @@ rpca.fd <- function(fdobj,
                                      kmax = min(nharm, 200))
     }
     results$vectors <- mod_pca$loadings
-    results$values <- matrixStats::colMads(mod_pca$scores)^2
+    results$values <- Rfast::colMads(mod_pca$scores)^2
     coeff_mean <- array(0,c(nbasis,1,nvar))
     for (i in 1:nvar) {
       indexi <- 1:nbasis + (i - 1) * nbasis
@@ -496,14 +495,13 @@ rpca.fd <- function(fdobj,
 #' \emph{Computational Statistics & Data Analysis}, 111:59–76.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(funcharts)
 #' mfdobj <- get_mfd_list(air, grid = 1:24, n_basis = 13, lambda = 1e-2)
 #' plot_mfd(mfdobj)
-#' out <- functional_filter(mfdobj)
+#' out <- functional_filter(mfdobj, bivariate = FALSE)
 #' }
 #'
-#' @author C. Capezza, F. Centofanti
 functional_filter <- function(mfdobj,
                               method_pca = "ROBPCA",
                               alpha = 0.95,
@@ -810,14 +808,13 @@ univ_fil_gse <- function(v, alpha, df) {
 #'
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(funcharts)
-#' mfdobj <- get_mfd_list(air, grid = 1:24, n_basis = 13, lambda = 1e-2)
-#' out <- functional_filter(mfdobj)
-#' mfdobj_imp <- RoMFDI(out$mfdobj)
+#' mfdobj <- get_mfd_list(air[1:3], grid = 1:24, n_basis = 13, lambda = 1e-2)
+#' out <- functional_filter(mfdobj, bivariate = FALSE)
+#' mfdobj_imp <- RoMFDI(out$mfdobj, n_dataset = 1, update = FALSE)
 #' }
 #'
-#' @author C. Capezza, F. Centofanti
 RoMFDI <- function(mfdobj,
                    method_pca = "ROBPCA",
                    fev = 0.999,
@@ -1108,6 +1105,9 @@ RoMFDI <- function(mfdobj,
 #' The overall nominal type-I error probability used to set
 #' control chart limits.
 #' Default value is 0.05.
+#' @param verbose
+#' If TRUE, it prints messages about the steps of the algorithm.
+#' Default is FALSE.
 #'
 #' @return
 #' A list of the following elements that are needed in Phase II:
@@ -1151,7 +1151,7 @@ RoMFDI <- function(mfdobj,
 #' \emph{Technometrics}, 66(4):531--547, <doi:10.1080/00401706.2024.2327346>.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(funcharts)
 #' mfdobj <- get_mfd_list(air, n_basis = 5)
 #' nobs <- dim(mfdobj$coefs)[2]
@@ -1161,19 +1161,20 @@ RoMFDI <- function(mfdobj,
 #' mfdobj_tuning <- mfdobj[ids[101:300]]
 #' mfdobj2 <- mfdobj[ids[-(1:300)]]
 #' mod_phase1 <- RoMFCC_PhaseI(mfdobj = mfdobj1,
-#'                             mfdobj_tuning = mfdobj_tuning)
+#'                             mfdobj_tuning = mfdobj_tuning,
+#'                             functional_filter_par = list(filter = FALSE))
 #' phase2 <- RoMFCC_PhaseII(mfdobj_new = mfdobj2,
 #'                          mod_phase1 = mod_phase1)
 #' plot_control_charts(phase2)
 #' }
 #'
-#' @author C. Capezza, F. Centofanti
 RoMFCC_PhaseI <- function(mfdobj,
                           mfdobj_tuning = NULL,
                           functional_filter_par = list(filter = TRUE),
                           imputation_par = list(method_imputation = "RoMFDI"),
                           pca_par = list(fev = 0.7),
-                          alpha = 0.05) {
+                          alpha = 0.05,
+                          verbose = FALSE) {
 
   # filter default arguments
   if (!is.list(functional_filter_par)) {
@@ -1204,6 +1205,9 @@ RoMFCC_PhaseI <- function(mfdobj,
 
   # Functional filter
   if (functional_filter_par$filter) {
+    if (verbose) {
+      print("Training set: functional filtering...")
+    }
 
     functional_filter_default <- formals(functional_filter)
     functional_filter_args <- functional_filter_par
@@ -1226,6 +1230,9 @@ RoMFCC_PhaseI <- function(mfdobj,
 
   # Imputation
   if (anyNA(X_mfdm$coefs)) {
+    if (verbose) {
+      print("Training set: imputation step...")
+    }
 
     if (!(imputation_par$method_imputation %in% c("RoMFDI", "mean"))) {
       stop("method_imputation must be either \"RoMFDI\" or \"mean\"")
@@ -1264,6 +1271,9 @@ RoMFCC_PhaseI <- function(mfdobj,
   n_dataset <- length(X_imp)
 
   # Robust PCA
+  if (verbose) {
+    print("Training set: dimension reduction step...")
+  }
   pca_default <- formals(rpca_mfd)
   pca_args <- pca_par
   pca_args$fev <- NULL
@@ -1296,7 +1306,8 @@ RoMFCC_PhaseI <- function(mfdobj,
   }
 
   corr_coef_mean <- apply(simplify2array(corr_coef_list), 1:2, mean)
-  W <- as.matrix(Matrix::bdiag(rep(list(mod_pca$harmonics$basis$B), nvars)))
+  # W <- as.matrix(Matrix::bdiag(rep(list(mod_pca$harmonics$basis$B), nvars)))
+  W <- kronecker(diag(nvars), mod_pca$harmonics$basis$B)
   W_sqrt <- chol(W)
   W_sqrt_inv <- solve(W_sqrt)
   VCOV <- W_sqrt %*% corr_coef_mean %*% t(W_sqrt)
@@ -1328,7 +1339,9 @@ RoMFCC_PhaseI <- function(mfdobj,
                         scale_fd = scale_fd,
                         varprop = varprop)
 
-
+  if (verbose) {
+    print("Training set: calculating monitoring statistics...")
+  }
   # T2 SPE statistics
   K <- which(cumsum(mod_pca_final$varprop) >= pca_par$fev)[1]
 
@@ -1372,6 +1385,9 @@ RoMFCC_PhaseI <- function(mfdobj,
     nobs_tuning <- dim(mfdobj_tuning$coefs)[2]
 
     # Functional filter
+    if (verbose) {
+      print("Tuning set: functional filtering...")
+    }
     if (functional_filter_par$filter) {
 
       functional_filter_args$mfdobj <- mfdobj_tuning
@@ -1388,6 +1404,9 @@ RoMFCC_PhaseI <- function(mfdobj,
 
     # Imputation
     if (anyNA(X_mfd_tuning_m$coefs)) {
+      if (verbose) {
+        print("Tuning set: imputation step...")
+      }
 
       if (imputation_par$method_imputation == "RoMFDI") {
         imputation_args$mfdobj <- rbind_mfd(X_imp[[1]], X_mfd_tuning_m)
@@ -1438,6 +1457,10 @@ RoMFCC_PhaseI <- function(mfdobj,
       S_scores_tuning_rob[[D]] <- mod$cov
       S_scores_tuning_rob2[[D]] <- mod2$cov
 
+    }
+
+    if (verbose) {
+      print("Tuning set: calculating monitoring statistics and control chart limits...")
     }
 
     mean_scores_tuning_rob <- do.call(cbind, mean_scores_tuning_rob)
@@ -1541,7 +1564,7 @@ RoMFCC_PhaseI <- function(mfdobj,
 #' \emph{Technometrics}, 66(4):531--547, <doi:10.1080/00401706.2024.2327346>.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(funcharts)
 #' mfdobj <- get_mfd_list(air, n_basis = 5)
 #' nobs <- dim(mfdobj$coefs)[2]
@@ -1551,13 +1574,13 @@ RoMFCC_PhaseI <- function(mfdobj,
 #' mfdobj_tuning <- mfdobj[ids[101:300]]
 #' mfdobj2 <- mfdobj[ids[-(1:300)]]
 #' mod_phase1 <- RoMFCC_PhaseI(mfdobj = mfdobj1,
-#'                             mfdobj_tuning = mfdobj_tuning)
+#'                             mfdobj_tuning = mfdobj_tuning,
+#'                             functional_filter_par = list(filter = FALSE))
 #' phase2 <- RoMFCC_PhaseII(mfdobj_new = mfdobj2,
 #'                          mod_phase1 = mod_phase1)
 #' plot_control_charts(phase2)
 #' }
 #'
-#' @author C. Capezza, F. Centofanti
 RoMFCC_PhaseII <- function(mfdobj_new,
                            mod_phase1) {
 
@@ -1591,8 +1614,6 @@ RoMFCC_PhaseII <- function(mfdobj_new,
                     spe = SPE,
                     T2_lim = mod_phase1$T2_lim,
                     spe_lim = mod_phase1$spe_lim)
-
-
 
   return(out)
 }

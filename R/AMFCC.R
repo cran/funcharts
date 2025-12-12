@@ -68,6 +68,7 @@
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' library(funcharts)
 #' N <- 10
 #' l_grid <- 10
@@ -123,8 +124,8 @@
 #'
 #' plot(mod_phaseII_AMFCC)
 #' plot(mod_phaseII_AMFCC,type='cont',ind_obs=1)
+#' }
 #'
-#' @author F. Centofanti
 #' @references
 #' Centofanti, F., A. Lepore, and B. Palumbo (2025).
 #' An Adaptive Multivariate Functional Control Chart.
@@ -454,7 +455,6 @@ AMFCC_PhaseI <- function(data_tra,
 #' plot(mod_phaseII_AMFCC)
 #' plot(mod_phaseII_AMFCC,type='cont',ind_obs=1)
 #'
-#' @author F. Centofanti
 #' @references
 #' Centofanti, F., A. Lepore, and B. Palumbo (2025).
 #' An Adaptive Multivariate Functional Control Chart.
@@ -777,7 +777,7 @@ get_mfd2 <- function(data,
   q <- basis$nbasis
   p_var <- max(data$var)
   N_data <- length(unique(data$curve))
-  W_der <- eval.penalty(basis, 2)
+  W_der <- fda::eval.penalty(basis, 2)
   coef_mat <-
     coef_mat_0 <- array(0, c(q, length(lambda_s_seq), p_var))
 
@@ -787,7 +787,7 @@ get_mfd2 <- function(data,
                                 data$var == jj]
     grid_i_list[[jj]] <-
       grid[data$timeindex[data$curve == ind_obs & data$var == jj]]
-    S_list[[jj]] <- eval.basis(grid_i_list[[jj]], basis)
+    S_list[[jj]] <- fda::eval.basis(grid_i_list[[jj]], basis)
   }
 
   for (ii in 1:length(lambda_s_seq)) {

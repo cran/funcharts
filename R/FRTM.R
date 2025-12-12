@@ -13,8 +13,8 @@
 #'
 #' @references
 #' Centofanti, F., A. Lepore, M. Kulahci, and M. P. Spooner (2024).
-#' Real-time monitoring of functional data.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' Real-time monitoring of functional data. \emph{Journal of Quality Technology}, 57(2):135--152,
+#' doi:https://doi.org/10.1080/00224065.2024.2430978.
 #'
 #' @return   A list containing the following arguments:
 #'
@@ -37,7 +37,6 @@
 #' @examples
 #' library(funcharts)
 #' data<-simulate_data_FRTM(n_obs=20)
-#' @import fda
 simulate_data_FRTM <-
   function(n_obs = 100,
            scenario = "1",
@@ -572,8 +571,8 @@ FDTW_group <-
 #'
 #' @references
 #' Centofanti, F., A. Lepore, M. Kulahci, and M. P. Spooner (2024).
-#' Real-time monitoring of functional data.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' Real-time monitoring of functional data. \emph{Journal of Quality Technology}, 57(2):135--152,
+#' doi:https://doi.org/10.1080/00224065.2024.2430978.
 #'
 #' @return   A list containing the following arguments:
 #'
@@ -621,7 +620,6 @@ FDTW_group <-
 #'  A general optimization framework for dynamic time warping.
 #'  \emph{Optimization and Engineering, 1-22}.
 #'
-#' @author F. Centofanti
 OEBFDTW <-
   function(x_fd,
            template_fd,
@@ -970,9 +968,9 @@ OEBFDTW_c <-
                              nbasis = max(4, n_basis_x),
                              norder = 4)
     }
-    h_fd <- fd(h_opt[, 2], basis_h)
+    h_fd <- fda::fd(h_opt[, 2], basis_h)
     if (get_fd == "x_reg") {
-      x_tilde <- eval.fd(h_opt[, 2], x_fd)
+      x_tilde <- fda::eval.fd(h_opt[, 2], x_fd)
       x_reg <- fda::smooth.basis(h_opt[, 1], x_tilde, basis_x)$fd
       der_reg = r_reg = der_tilde = x_fd_std = template_fd_std = der_x_fd_std =
         der_template_fd_std = x_fd_reg_std = der_x_reg_std = NULL
@@ -1039,10 +1037,10 @@ obj_function <-
 
     if (is.null(der_0))
       der_0 <- dom_x / dom_tem
-    eval_x_fd_st <- eval.fd(h[, 2], x_fd_std)
-    eval_tem_fd_st <- eval.fd(h[, 1], template_fd_std)
-    eval_der_x_fd_st <- eval.fd(h[, 2], der_x_fd_std)
-    eval_der_tem_fd_st <- eval.fd(h[, 1], der_template_fd_std)
+    eval_x_fd_st <- fda::eval.fd(h[, 2], x_fd_std)
+    eval_tem_fd_st <- fda::eval.fd(h[, 1], template_fd_std)
+    eval_der_x_fd_st <- fda::eval.fd(h[, 2], der_x_fd_std)
+    eval_der_tem_fd_st <- fda::eval.fd(h[, 1], der_template_fd_std)
     loss_dtw <- quad_sum <- der_sum <- der <- numeric(N)
     loss_dtw[1] <- 0
     quad_sum[1] <- der_sum[1] <- der[1] <- 0
@@ -1089,7 +1087,7 @@ completion_fd <- function(x_fd, h_fd, template_fd, seq_t) {
   }
   basis_h_r <-
     fda::create.bspline.basis(range_t, breaks = eval_seq_h, norder = 2)
-  h_fd_com <- fd(eval_h_mat, basis_h_r)
+  h_fd_com <- fda::fd(eval_h_mat, basis_h_r)
   basis_x_r <-
     fda::create.bspline.basis(range_t, nbasis = x_fd[[1]]$basis$nbasis)
   eval_x_mat <- matrix(0, length(eval_seq_x), length(h_fd))
@@ -1112,8 +1110,8 @@ complete_h <-
     basis_h_i <-
       fda::create.bspline.basis(range_eval, breaks =  eval_seq, norder = 2)
     eval_h <-
-      eval.fd(eval_seq[which(eval_seq >= range_h[1] &
-                               eval_seq <= range_h[2])], h_fd_i)
+      fda::eval.fd(eval_seq[which(eval_seq >= range_h[1] &
+                                    eval_seq <= range_h[2])], h_fd_i)
     if (range_h[1] != range_eval[1]) {
       x <- eval_seq[which(eval_seq < range_h[1])]
       a <- abs(diff(range(eval_h)) / diff(range_h))
@@ -1150,7 +1148,7 @@ complete_h <-
         fda::smooth.basis(eval_h, eval_seq, basis_h_r_inv)$fd
     else
       NULL
-    h_fd_com <- fd(eval_h, basis_h_i)
+    h_fd_com <- fda::fd(eval_h, basis_h_i)
     out <- list(
       eval_h = eval_h,
       eval_seq = eval_seq,
@@ -1172,14 +1170,14 @@ complete_x <-
         norder = min(length(eval_seq), 4, x_fd_i$basis$nbasis)
       )
     eval_x <-
-      eval.fd(eval_seq[which(eval_seq >= range_x[1] &
-                               eval_seq <= range_x[2])], x_fd_i)
+      fda::eval.fd(eval_seq[which(eval_seq >= range_x[1] &
+                                    eval_seq <= range_x[2])], x_fd_i)
     if (range_x[1] != range_eval[1]) {
       x <- eval_seq[which(eval_seq < range_x[1])]
       x_con <- eval_seq[which(eval_seq >= range_x[1])][1]
-      y <- eval.fd(x, template_fd)
+      y <- fda::eval.fd(x, template_fd)
       eval_x_c1 <-
-        y + as.numeric(eval.fd(x_con, x_fd_i) - eval.fd(x_con, template_fd))
+        y + as.numeric(fda::eval.fd(x_con, x_fd_i) - fda::eval.fd(x_con, template_fd))
     }
     else{
       eval_x_c1  <-  NULL
@@ -1189,9 +1187,9 @@ complete_x <-
       x_con <-
         eval_seq[which(eval_seq <= range_x[2])][length(eval_seq[which(eval_seq <=
                                                                         range_x[2])])]
-      y <- eval.fd(x, template_fd)
+      y <- fda::eval.fd(x, template_fd)
       eval_x_c2 <-
-        y + as.numeric(eval.fd(x_con, x_fd_i) - eval.fd(x_con, template_fd))
+        y + as.numeric(fda::eval.fd(x_con, x_fd_i) - fda::eval.fd(x_con, template_fd))
     }
     else{
       eval_x_c2  <-  NULL
@@ -1320,7 +1318,7 @@ get_template <-
                       align_output_IC$h_fd,
                       template_fd,
                       seq_t = seq_t)
-      template_fd <- mean.fd(complete_fd$x_fd_com)
+      template_fd <- fda::mean.fd(complete_fd$x_fd_com)
       der_template_fd <- fda::deriv.fd(template_fd)
     }
     out <- list(
@@ -1340,7 +1338,7 @@ get_ul <- function(h_fd,
   length_t <- 100
   n_obs <- dim(h_fd$coefs)[2]
   grid <- seq(0, 1, length.out = length_t)
-  eval <- eval.fd(grid, h_fd)
+  eval <- fda::eval.fd(grid, h_fd)
   basis_list <-
     lapply(1:n_obs, function(ii)
       fda::create.bspline.basis(c(min(eval[, ii]), max(eval[, ii])), nbasis = 30, norder = 3))
@@ -1359,7 +1357,7 @@ get_ul <- function(h_fd,
         else if (grid_x[ii] > range_h[2])
           1
         else
-          eval.fd(grid_x[ii], h_inv[[kk]])
+          fda::eval.fd(grid_x[ii], h_inv[[kk]])
       }
     }
     den_list <- apply(eval_h, 2, stats::density)
@@ -1387,7 +1385,7 @@ get_ul <- function(h_fd,
       grid_x[-ind_del]
     basis_l <-
       fda::create.bspline.basis(range(grid_l_t), breaks = grid_l_t , norder = 2)
-    l_fd <- fd(l_t_r, basis_l)
+    l_fd <- fda::fd(l_t_r, basis_l)
     u_t_r1 <- lim_mat[, 2]
     ind_del <-
       c(which(u_t_r1 <= 0)[-length(which(u_t_r1 <= 0))], which(u_t_r1 >= 1)[-1])
@@ -1401,25 +1399,25 @@ get_ul <- function(h_fd,
       grid_x[-ind_del]
     basis_u <-
       fda::create.bspline.basis(range(grid_u_t), breaks = grid_u_t , norder = 2)
-    u_fd <- fd(u_t_r, basis_u)
+    u_fd <- fda::fd(u_t_r, basis_u)
     fdp <- fdm <- NULL
   }
   else if (type == "band") {
-    end <- stats::median(eval.fd(1, h_fd))
-    start <- stats::median(eval.fd(0, h_fd))
+    end <- stats::median(fda::eval.fd(1, h_fd))
+    start <- stats::median(fda::eval.fd(0, h_fd))
     basis <- fda::create.bspline.basis(c(0, 1), nbasis = 2, norder = 2)
     fd <- fda::smooth.basis(c(0, 1), c(start, end), basis)$fd
     fdp <- fd + bandp
     fdm <- fd - bandm
     grid <- seq(0, 1, length.out = 200)
-    eval <- eval.fd(grid, fdp)
+    eval <- fda::eval.fd(grid, fdp)
     eval[abs(eval) < 10 ^ -6] = 0
     ind <- which(eval >= 0)
     eval <- eval[ind]
     new_basis <- fda::create.bspline.basis(range(eval), nbasis = 2, norder =
                                         2)
     l_fd <- fda::smooth.basis(eval, grid[ind], new_basis)$fd
-    eval <- eval.fd(grid, fdm)
+    eval <- fda::eval.fd(grid, fdm)
     eval[abs(eval) < 10 ^ -6] = 0
     ind <- which(eval >= 0)
     eval <- eval[ind]
@@ -1440,8 +1438,8 @@ get_ul <- function(h_fd,
   return(out)
 }
 get_point_pen <- function(h_fd) {
-  point_y <- base::mean(eval.fd(0, h_fd))
-  point_end <- base::mean(eval.fd(1, h_fd))
+  point_y <- base::mean(fda::eval.fd(0, h_fd))
+  point_end <- base::mean(fda::eval.fd(1, h_fd))
   x_new <- -point_y * (1) / (point_end - point_y)
   if (point_y > 0) {
     point <- c(x_new, 0)
@@ -1521,7 +1519,7 @@ Phase_I_OEBFDTW_rt<-function(x_i,template_fd,seq_x=seq(0.1,5,length.out = 5),u_f
         else if (t_x > range_u[2])
           1
         else
-          as.numeric(eval.fd(t_x, u_fd))
+          as.numeric(fda::eval.fd(t_x, u_fd))
         range_l <- l_fd$basis$rangeval
         l_ti <-
           if (t_x < range_l[1])
@@ -1529,7 +1527,7 @@ Phase_I_OEBFDTW_rt<-function(x_i,template_fd,seq_x=seq(0.1,5,length.out = 5),u_f
         else if (t_x > range_l[2])
           1
         else
-          as.numeric(eval.fd(t_x, l_fd))
+          as.numeric(fda::eval.fd(t_x, l_fd))
         if (u_ti <= min(seq_t))
           u_ti  <-  seq_t[2]
         if (start == 0) {
@@ -1570,7 +1568,7 @@ Phase_I_OEBFDTW_rt<-function(x_i,template_fd,seq_x=seq(0.1,5,length.out = 5),u_f
                                          seq_t <= end)][seq(1, length(seq_t[which(seq_t >= st &
                                                                                     seq_t <= end)]), length.out = length_grid)])
         if (is.na(seq_t_tem)[1])
-          seq_t_tem  <-  eval.fd(max(x_i[[2]][which(x_i[[2]] <= t_x)]), u_fd)
+          seq_t_tem  <-  fda::eval.fd(max(x_i[[2]][which(x_i[[2]] <= t_x)]), u_fd)
         mod_rt <-
           OEBFDTW_rt_iter(
             x_i = x_i,
@@ -1593,7 +1591,7 @@ Phase_I_OEBFDTW_rt<-function(x_i,template_fd,seq_x=seq(0.1,5,length.out = 5),u_f
 
         eval_poi <- unique(eval_poi)
         den <- abs(eval_poi[1] - eval_poi[2:length(eval_poi)])
-        eval_diff <- eval.fd(eval_poi, mod_rt$mod_opt$mod$h_fd)
+        eval_diff <- fda::eval.fd(eval_poi, mod_rt$mod_opt$mod$h_fd)
         diff <- abs(eval_diff[1] - eval_diff[2:length(eval_diff)])
         der_h_i <- diff / den
         der_h  <-  stats::median(der_h_i)
@@ -1788,7 +1786,7 @@ tra_warp <- function(h_fd, type = "clog") {
     fda::create.bspline.basis(range,
                          norder = min(4, h_fd$basis$nbasis),
                          nbasis = h_fd$basis$nbasis)
-  eval_fd <- eval.fd(grid_eval, h_fd)
+  eval_fd <- fda::eval.fd(grid_eval, h_fd)
   eval_fd[eval_fd < 0] = 10 ^ -8
   if (type == "log")
     tr_eval <- log10(eval_fd)
@@ -1819,8 +1817,8 @@ tra_warp <- function(h_fd, type = "clog") {
 #' @param par_ncom If \code{ncom="ptv"}, the threshold for the percentage of the total variability explained. If \code{ncom="kaiserrule"}, the threshold for the Kaiser rule. Otherwise, this parameter is not considered.
 #' @references
 #' Centofanti, F., A. Lepore, M. Kulahci, and M. P. Spooner (2024).
-#' Real-time monitoring of functional data.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' Real-time monitoring of functional data. \emph{Journal of Quality Technology}, 57(2):135--152,
+#' doi:https://doi.org/10.1080/00224065.2024.2430978.
 #'
 #' @return   A list containing the following arguments:
 #'
@@ -1855,7 +1853,6 @@ tra_warp <- function(h_fd, type = "clog") {
 
 #' \code{ind_var} Additional parameter  used in \code{FRTM_PhaseI}.
 #' @export
-#' @author F. Centofanti
 #' @examples
 #' library(funcharts)
 #'
@@ -1883,14 +1880,14 @@ mFPCA <-
            par_ncom = 0.9) {
     range <- x_fd$basis$rangeval
     if (!is.null(h_fd)) {
-      F_0 <- eval.fd(range[1], h_fd)
-      F_1 <- eval.fd(range[2], h_fd)
-      F_0_fd <- fd(F_0, create.constant.basis(range))
-      F_1_fd <- fd(F_1, create.constant.basis(range))
+      F_0 <- fda::eval.fd(range[1], h_fd)
+      F_1 <- fda::eval.fd(range[2], h_fd)
+      F_0_fd <- fda::fd(F_0, fda::create.constant.basis(range))
+      F_1_fd <- fda::fd(F_1, fda::create.constant.basis(range))
       diff <- (F_1 - F_0)
       diff[which(diff == 0)]  <-  1
-      F_10inv_fd <- fd((diff) ^ -1, create.constant.basis(range))
-      F_10_fd <- fd((F_1 - F_0), create.constant.basis(range))
+      F_10inv_fd <- fda::fd((diff) ^ -1, fda::create.constant.basis(range))
+      F_10_fd <- fda::fd((F_1 - F_0), fda::create.constant.basis(range))
 
       max_h  <-  max(F_1 - F_0)
       delta_xamp  <-  max(x_fd$coefs) - min(x_fd$coefs)
@@ -1950,7 +1947,7 @@ fpc_hy <-
            ncom = "kaiserrule",
            par_ncom = 0.25) {
     type  <-  "std"
-    if (is.fd(x_fd_list))
+    if (fda::is.fd(x_fd_list))
       x_fd_list <- list(x_fd_list)
     n_fd_var <- length(x_fd_list)
     if (n_fd_var > 1)
@@ -1964,7 +1961,7 @@ fpc_hy <-
     nobs <- dim(x_fd_list[[1]]$coefs)[2]
     mean_fd_list <-
       lapply(1:n_fd_var, function(ii)
-        mean.fd(x_fd_list[[ii]]))
+        fda::mean.fd(x_fd_list[[ii]]))
     sd_fd_list <-
       lapply(1:n_fd_var, function(ii)
         new_sd.fd(x_fd_list[[ii]]))
@@ -2002,7 +1999,7 @@ fpc_hy <-
       sd_sc_mat <- rep(1, length(sd_sc_mat))
     x_fd_list <-
       lapply(1:n_fd_var, function(ii)
-        new_mul.fd(center.fd(x_fd_list[[ii]]), new_sqrt.fd(sd_fd_list[[ii]], -1)))
+        new_mul.fd(fda::center.fd(x_fd_list[[ii]]), new_sqrt.fd(sd_fd_list[[ii]], -1)))
     if (!is.null(sc_mat)) {
       sc_mat_n <- scale(sc_mat, scale = TRUE)
       if (sum(is.na(sc_mat_n)) != 0)
@@ -2015,8 +2012,8 @@ fpc_hy <-
       x_fd_list[[2]] <- new_mul.fd2(x_fd_list[[2]], weight_fun)
       if (!is.null(sc_mat)) {
         sc_mat  <-  sc_mat * matrix(c(
-          eval.fd(weight_fun$basis$rangeval[1], weight_fun),
-          eval.fd(weight_fun$basis$rangeval[2], weight_fun)
+          fda::eval.fd(weight_fun$basis$rangeval[1], weight_fun),
+          fda::eval.fd(weight_fun$basis$rangeval[2], weight_fun)
         ),
         dim(sc_mat)[1],
         dim(sc_mat)[2],
@@ -2024,8 +2021,8 @@ fpc_hy <-
       }
       weight_new <- new_sd.fd(x_fd_list[[2]])
       new_sc_mat_sd  <-  c(
-        eval.fd(weight_fun$basis$rangeval[1], weight_fun),
-        eval.fd(weight_fun$basis$rangeval[2], weight_fun)
+        fda::eval.fd(weight_fun$basis$rangeval[1], weight_fun),
+        fda::eval.fd(weight_fun$basis$rangeval[2], weight_fun)
       )
     }
     else{
@@ -2050,7 +2047,7 @@ fpc_hy <-
       x_fd_list[[ii]]$basis)
     W_list <-
       lapply(1:n_fd_var, function(ii)
-        eval.penalty(basis_list[[ii]]))
+        fda::eval.penalty(basis_list[[ii]]))
     nbasis_i <- sapply(1:n_fd_var, function(ii)
       dim(W_list[[ii]])[1])
     nbasis <- sum(nbasis_i)
@@ -2121,7 +2118,7 @@ fpc_hy <-
     }
     eigfun_fd_list <-
       lapply(1:n_fd_var, function(ii)
-        fd(eigvect_fd_list[[ii]], basis_list[[ii]]))
+        fda::fd(eigvect_fd_list[[ii]], basis_list[[ii]]))
     eigvect_sc <-
       if (!is.null(sc_mat))
         eigvect[(nbasis + 1):dim_aug, 1:K]
@@ -2199,7 +2196,7 @@ fit_pca_hy <-
     if (is.null(mean_fd_list))
       mean_fd_list <-
       lapply(1:n_fd_var, function(ii)
-        mean.fd(x_fd_list[[ii]]))
+        fda::mean.fd(x_fd_list[[ii]]))
     if (is.null(mean_sc_mat))
       if (!is.null(sc_mat))
         mean_sc_mat <- colMeans(sc_mat)
@@ -2226,7 +2223,7 @@ fit_pca_hy <-
       score_fd
     fit_list_norm <-
       lapply(1:n_fd_var, function(ii)
-        fd(eigfun_fd_list[[ii]]$coefs %*% t(scores), eigfun_fd_list[[ii]]$basis))
+        fda::fd(eigfun_fd_list[[ii]]$coefs %*% t(scores), eigfun_fd_list[[ii]]$basis))
     fit_list = fit_list_norm
     if (!is.null(sc_mat)) {
       sc_fit_norm <-
@@ -2256,7 +2253,7 @@ fit_pca_hy <-
     }
     for (ii in 1:n_fd_var) {
       fit_list[[ii]] <-
-        fd(matrix(rep(mean_fd_list[[ii]]$coefs, dim(scores)[1]), ncol = dim(scores)[1]), mean_fd_list[[ii]]$basis) +
+        fda::fd(matrix(rep(mean_fd_list[[ii]]$coefs, dim(scores)[1]), ncol = dim(scores)[1]), mean_fd_list[[ii]]$basis) +
         new_mul.fd(fit_list[[ii]], sd_fd_list[[ii]])
     }
     if (!is.null(sc_mat)) {
@@ -2293,12 +2290,12 @@ get_scores_pcahy <- function(x_fd,
   if (!is.null(h_fd)) {
     range <- h_fd$basis$rangeval
     eval_seq <- seq(range[1], range[2], length.out = 200)
-    F_0 <- eval.fd(range[1], h_fd)
-    F_1 <- eval.fd(range[2], h_fd)
-    F_0_fd <- fd(F_0, create.constant.basis(range))
-    F_1_fd <- fd(F_1, create.constant.basis(range))
-    F_10inv_fd <- fd((F_1 - F_0) ^ -1, create.constant.basis(range))
-    F_10_fd <- fd((F_1 - F_0), create.constant.basis(range))
+    F_0 <- fda::eval.fd(range[1], h_fd)
+    F_1 <- fda::eval.fd(range[2], h_fd)
+    F_0_fd <- fda::fd(F_0, fda::create.constant.basis(range))
+    F_1_fd <- fda::fd(F_1, fda::create.constant.basis(range))
+    F_10inv_fd <- fda::fd((F_1 - F_0) ^ -1, fda::create.constant.basis(range))
+    F_10_fd <- fda::fd((F_1 - F_0), fda::create.constant.basis(range))
     h_fd_s <-  (h_fd - F_0_fd) * F_10inv_fd
     h_s_tr <- tra_warp(fda::deriv.fd(h_fd_s), type = "clog")
     sc_mat <- cbind(t(F_0), t(log10(F_1 - F_0)))
@@ -2343,7 +2340,7 @@ get_scores_pcahy <- function(x_fd,
   if(!is.null(weight_fun)){
     x_fd_list_cen[[2]]<-new_mul.fd2(x_fd_list_cen[[2]],weight_fun)
     if(!is.null(sc_mat)){
-      sc_mat_cen=sc_mat_cen*matrix(c(eval.fd(weight_fun$basis$rangeval[1],weight_fun),eval.fd(weight_fun$basis$rangeval[2],weight_fun)),dim(sc_mat)[1],dim(sc_mat)[2],byrow=TRUE)
+      sc_mat_cen=sc_mat_cen*matrix(c(fda::eval.fd(weight_fun$basis$rangeval[1],weight_fun),fda::eval.fd(weight_fun$basis$rangeval[2],weight_fun)),dim(sc_mat)[1],dim(sc_mat)[2],byrow=TRUE)
     }
   }
   scores_list<-list()
@@ -2359,7 +2356,9 @@ get_scores_pcahy <- function(x_fd,
       score_sc<-sc_mat_cen%*%diag(we_sc)%*%eigvect_sc
   }
   scores<-if(!is.null(sc_mat))  score_fd+score_sc else score_fd
-  fit_list_norm<-lapply(1:n_fd_var, function(ii)fd(eigfun_fd_list[[ii]]$coefs%*%t(scores),eigfun_fd_list[[ii]]$basis))
+  fit_list_norm<-lapply(1:n_fd_var, function(ii) {
+    fda::fd(eigfun_fd_list[[ii]]$coefs%*%t(scores),eigfun_fd_list[[ii]]$basis)
+  })
   fit_list=fit_list_norm
   if(!is.null(sc_mat)){
     sc_fit_norm<- if(is.null(dim(eigvect_sc)))scores%*%eigvect_sc else scores%*%t(eigvect_sc)
@@ -2383,7 +2382,7 @@ get_scores_pcahy <- function(x_fd,
   }
 
   for(ii in 1:n_fd_var){
-    fit_list[[ii]]<-fd(matrix(rep(mean_fd_list[[ii]]$coefs,dim(scores)[1]),ncol=dim(scores)[1]),mean_fd_list[[ii]]$basis)+new_mul.fd(fit_list[[ii]],sd_fd_list[[ii]])
+    fit_list[[ii]]<-fda::fd(matrix(rep(mean_fd_list[[ii]]$coefs,dim(scores)[1]),ncol=dim(scores)[1]),mean_fd_list[[ii]]$basis)+new_mul.fd(fit_list[[ii]],sd_fd_list[[ii]])
 
   }
   if(!is.null(sc_mat)){
@@ -2519,7 +2518,7 @@ CL_T2SPE_fd <- function(fd, alpha, type = "pointwise", seq_x) {
     grid_eval[ind_list[[ii]]])
   eval_list <-
     lapply(1:n_obs, function(ii)
-      eval.fd(grid_list[[ii]], fd[[ii]]))
+      fda::eval.fd(grid_list[[ii]], fd[[ii]]))
   mat <- matrix(NA, n_obs, length(grid_eval))
   for (ii in 1:n_obs) {
     mat[ii, ind_list[[ii]]] <- eval_list[[ii]]
@@ -2607,13 +2606,13 @@ get_T2SPE_fd <- function(T_2_mat, SPE_2_mat, seq_x) {
     seq_i <- seq_x[ind]
     if (length(seq_i) > 1) {
       basis <- fda::create.bspline.basis(range(seq_i), breaks = seq_i, norder = 2)
-      T2_fd[[ii]] <- fd(values, basis)
-      SPE_fd[[ii]] <- fd(values_spe, basis)
+      T2_fd[[ii]] <- fda::fd(values, basis)
+      SPE_fd[[ii]] <- fda::fd(values_spe, basis)
     }
     else{
       print("seq_x too short!!")
       T2_fd[[ii]] <- SPE_fd[[ii]] <- NULL
-      # SPE_fd[[ii]]<-fd(values_spe,basis)
+      # SPE_fd[[ii]]<-fda::fd(values_spe,basis)
     }
 
   }
@@ -2654,7 +2653,6 @@ get_T2SPE_fd <- function(T_2_mat, SPE_2_mat, seq_x) {
 #'  A general optimization framework for dynamic time warping.
 #'  \emph{Optimization and Engineering, 1-22}.
 #'
-#' @author F. Centofanti
 par.FDTW <-
   function(N = 100,
            M = 50,
@@ -2708,7 +2706,6 @@ par.FDTW <-
 #' library(funcharts)
 #' par.rtr()
 #'
-#' @author F. Centofanti
 par.rtr <-
   function(seq_x = NULL,
            delta_d = 0.05,
@@ -2767,8 +2764,8 @@ par.mFPCA <-
 #'
 #' @references
 #' Centofanti, F., A. Lepore, M. Kulahci, and M. P. Spooner (2024).
-#' Real-time monitoring of functional data.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' Real-time monitoring of functional data. \emph{Journal of Quality Technology}, 57(2):135--152,
+#' doi:https://doi.org/10.1080/00224065.2024.2430978.
 #'
 #' @return   A list containing the following arguments:
 #'
@@ -2824,7 +2821,7 @@ par.mFPCA <-
 #' seq_x <- seq(0.1, max_x, length.out = 10)
 #'
 #'
-#' \dontrun{
+#' \donttest{
 #'   mod_phaseI_FRTM <- FRTM_PhaseI(
 #'     data_tra =  data,
 #'     control.FDTW = list(
@@ -2843,7 +2840,6 @@ par.mFPCA <-
 #'   plot(mod_phaseII_FRTM)
 #' }
 #'
-#' @author F. Centofanti
 FRTM_PhaseI <-
   function(data_tra,
            data_tun = NULL,
@@ -3020,7 +3016,7 @@ FRTM_PhaseI <-
     u_fd <- ul_fd$u_fd
     l_fd <- ul_fd$l_fd
     frac_end <- frac_oeob
-    delta_xs <- eval.fd(ul_fd$u_fd$basis$rangeval[1], ul_fd$u_fd)
+    delta_xs <- fda::eval.fd(ul_fd$u_fd$basis$rangeval[1], ul_fd$u_fd)
     delta_ys <- ul_fd$l_fd$basis$rangeval[1]
 
 
@@ -3236,8 +3232,8 @@ FRTM_PhaseI <-
         x_fd_i <- cut_fd_xt(x_fd_i , t_t, eval_grid = eval_seq_x)
         nbasish[jj] <- h_fd_i$basis$nbasis
         nbasisx[jj] <- x_fd_i$basis$nbasis
-        eval_x[, jj] <- eval.fd(eval_seq_x, x_fd_i)
-        eval_h[, jj] <- eval.fd(eval_seq_h, h_fd_i)
+        eval_x[, jj] <- fda::eval.fd(eval_seq_x, x_fd_i)
+        eval_h[, jj] <- fda::eval.fd(eval_seq_h, h_fd_i)
       }
       basis_x_r <-
         fda::create.bspline.basis(c(range_t[1], t_t),
@@ -3321,9 +3317,7 @@ FRTM_PhaseI <-
       envir = environment()
     )
     parallel::clusterEvalQ(cl,  library(funcharts))
-    pca_list <-
-      parallel::parLapply(cl, 1:length(seq_t), function(ii)
-        parr_pca(ii))
+    pca_list <- parallel::parLapply(cl, 1:length(seq_t), function(ii) parr_pca(ii))
     parallel::stopCluster(cl)
   }
 
@@ -3483,8 +3477,8 @@ FRTM_PhaseI <-
                   cut_fd_ht(h_fd_i , seq_t[ind_i], eval_grid = eval_seq_h, monotone = FALSE)
                 x_fd_i <-
                   cut_fd_xt(x_fd_i , seq_t[ind_i], eval_grid = eval_seq_x)
-                eval_x <- eval.fd(eval_seq_x, x_fd_i)
-                eval_h <- eval.fd(eval_seq_h, h_fd_i)
+                eval_x <- fda::eval.fd(eval_seq_x, x_fd_i)
+                eval_h <- fda::eval.fd(eval_seq_h, h_fd_i)
                 basis_x_r <-
                   fda::create.bspline.basis(
                     c(range_t[1], seq_t[ind_i]),
@@ -3668,8 +3662,8 @@ FRTM_PhaseI <-
 #' @param ncores If \code{ncores}>1, then parallel computing is used, with \code{ncores} cores. Default is 1.
 #' @references
 #' Centofanti, F., A. Lepore, M. Kulahci, and M. P. Spooner (2024).
-#' Real-time monitoring of functional data.
-#' Accepted for publication in \emph{Journal of Quality Technology}.
+#' Real-time monitoring of functional data. \emph{Journal of Quality Technology}, 57(2):135--152,
+#' doi:https://doi.org/10.1080/00224065.2024.2430978.
 #' @return   A list containing the following arguments:
 #'
 #' \code{T2_fd} List of \eqn{T^{2}} functions for each observation.
@@ -3691,7 +3685,6 @@ FRTM_PhaseI <-
 #' @export
 #' @inherit FRTM_PhaseI return examples
 #'
-#' @author F. Centofanti
 FRTM_PhaseII<-function(data_oc,mod_phaseI,ncores=1){
 
   if(!methods::is(mod_phaseI, "FRTM_PhaseI"))
@@ -3844,8 +3837,8 @@ FRTM_PhaseII<-function(data_oc,mod_phaseI,ncores=1){
                         monotone = FALSE)
             x_fd_i <-
               cut_fd_xt(x_fd_i , seq_t[ind_i], eval_grid = eval_seq_x)
-            eval_x <- eval.fd(eval_seq_x, x_fd_i)
-            eval_h <- eval.fd(eval_seq_h, h_fd_i)
+            eval_x <- fda::eval.fd(eval_seq_x, x_fd_i)
+            eval_h <- fda::eval.fd(eval_seq_h, h_fd_i)
             basis_x_r <-
               fda::create.bspline.basis(
                 c(range_t[1], seq_t[ind_i]),

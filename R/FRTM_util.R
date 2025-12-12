@@ -2,23 +2,23 @@
 
 center_fd<-function(x_fd,mean=NULL){
   if(is.null(mean)){
-    center.fd(x_fd)
+    fda::center.fd(x_fd)
   }
   else{
-    mean_rep<-fd(matrix(rep(mean$coefs,dim(x_fd$coefs)[2]),ncol =dim(x_fd$coefs)[2]) ,mean$basis)
+    mean_rep<-fda::fd(matrix(rep(mean$coefs,dim(x_fd$coefs)[2]),ncol =dim(x_fd$coefs)[2]) ,mean$basis)
     x_fd-mean_rep
   }
 }
 cut_fd_ht<-function(fd,t_i,monotone=FALSE,eval_grid=NULL){
   eval_grid<-if(is.null(eval_grid))seq(fd$basis$rangeval[1],t_i,length.out = 200)else eval_grid
-  eval_fd<-eval.fd(eval_grid,fd)
+  eval_fd<-fda::eval.fd(eval_grid,fd)
   basis<-fda::create.bspline.basis(c(fd$basis$rangeval[1],t_i),breaks =  eval_grid,norder = 2)
-  out<-fd(eval_fd,basis)
+  out<-fda::fd(eval_fd,basis)
   return(out)
 }
 cut_fd_xt<-function(fd,t_i,monotone=FALSE,eval_grid=NULL){
   eval_grid<-if(is.null(eval_grid))seq(fd$basis$rangeval[1],t_i,length.out = 200)else eval_grid
-  eval_fd<-eval.fd(eval_grid,fd)
+  eval_fd<-fda::eval.fd(eval_grid,fd)
   basis<-fda::create.bspline.basis(c(fd$basis$rangeval[1],t_i),nbasis = min(length(eval_grid),fd$basis$nbasis),norder = min(length(eval_grid),fd$basis$nbasis-length(fd$basis$params),fd$basis$nbasis))
   out<-fda::smooth.basis(eval_grid,eval_fd,basis)$fd
   return(out)
@@ -26,8 +26,8 @@ cut_fd_xt<-function(fd,t_i,monotone=FALSE,eval_grid=NULL){
 cut_fd_x<-function(x_fd,h_fd,t_x,seq_t){
   range_t<-h_fd$basis$rangeval
   eval_seq=seq(0,1,length.out = 500)
-  eval_h<-eval.fd(eval_seq,h_fd)
-  eval_x<-eval.fd(eval_seq,x_fd)
+  eval_h<-fda::eval.fd(eval_seq,h_fd)
+  eval_x<-fda::eval.fd(eval_seq,x_fd)
   eval_h_new<-eval_h[eval_h<=t_x]
   eval_x_new<-eval_x[eval_h<=t_x]
   eval_seq_new<-eval_seq[eval_h<=t_x]
@@ -39,7 +39,7 @@ cut_fd_x<-function(x_fd,h_fd,t_x,seq_t){
       basis_x_r<-fda::create.bspline.basis(range(eval_seq_new),nbasis = max(4,round(0.5*npoints)))
     x_fd_r<-fda::smooth.basis(eval_seq_new,eval_x_new,basis_x_r)$fd
     basis_h_r<-fda::create.bspline.basis(range(eval_seq_new),breaks = eval_seq_new,norder = 2)
-    h_fd_r<-fd(eval_h_new,basis_h_r)
+    h_fd_r<-fda::fd(eval_h_new,basis_h_r)
   }
   else{
     x_fd_r=h_fd_r=NULL
@@ -56,7 +56,7 @@ loss2<-function(z,y,z1,y1,alpha,der_h)alpha^2*(z-y)^2+(1-alpha)^2*(z1*der_h-y1)^
 new_sd.fd<-function (e1) {
   range<-e1$basis$rangeval
   seq_eval<-seq(range[1],range[2],length.out = 400)
-  eval_fd<-eval.fd(seq_eval,e1)
+  eval_fd<-fda::eval.fd(seq_eval,e1)
   eval_fde2<-apply(eval_fd,1,stats::sd)
   basis<-fda::create.bspline.basis(range,nbasis = min(60,e1$basis$nbasis*3))
   fd<-fda::smooth.basis(seq_eval,eval_fde2,basis)$fd
@@ -65,8 +65,8 @@ new_sd.fd<-function (e1) {
 new_mul.fd<-function (e1,e2) {
   range<-e1$basis$rangeval
   seq_eval<-seq(range[1],range[2],length.out =400)
-  eval_fd1<-eval.fd(seq_eval,e1)
-  eval_fd2<-eval.fd(seq_eval,e2)
+  eval_fd1<-fda::eval.fd(seq_eval,e1)
+  eval_fd2<-fda::eval.fd(seq_eval,e2)
   if(dim(eval_fd1)[2]>dim(eval_fd2)[2]) eval_fd2<-matrix(rep(eval_fd2,dim(eval_fd1)[2]),dim(eval_fd1)[1],dim(eval_fd1)[2])
   eval_fde2<-eval_fd1*eval_fd2
   fd<-fda::smooth.basis(seq_eval,eval_fde2,e1$basis)$fd
@@ -75,8 +75,8 @@ new_mul.fd<-function (e1,e2) {
 new_mul.fd2<-function (e1,e2) {
   range<-e1$basis$rangeval
   seq_eval<-seq(range[1],range[2],length.out =300)
-  eval_fd1<-eval.fd(seq_eval,e1)
-  eval_fd2<-abs(eval.fd(seq_eval,e2))
+  eval_fd1<-fda::eval.fd(seq_eval,e1)
+  eval_fd2<-abs(fda::eval.fd(seq_eval,e2))
   if(dim(eval_fd1)[2]>dim(eval_fd2)[2]) eval_fd2<-matrix(rep(eval_fd2,dim(eval_fd1)[2]),dim(eval_fd1)[1],dim(eval_fd1)[2])
   eval_fde2<-if(dim(eval_fd1)[1]==dim(eval_fd2)[1]&dim(eval_fd1)[2]==dim(eval_fd2)[2])eval_fd1*abs(eval_fd2) else if(dim(eval_fd2)[2]==1)eval_fd1*matrix(eval_fd2,dim(eval_fd1)[1],dim(eval_fd1)[2])
   basis<-fda::create.bspline.basis(range,nbasis = 60)
@@ -87,8 +87,8 @@ new_mul.fd3<-function (e1,e2) {
 
   range<-e1$basis$rangeval
   seq_eval<-seq(range[1],range[2],length.out =300)
-  eval_fd1<-eval.fd(seq_eval,e1)
-  eval_fd2<-abs(eval.fd(seq_eval,e2))
+  eval_fd1<-fda::eval.fd(seq_eval,e1)
+  eval_fd2<-abs(fda::eval.fd(seq_eval,e2))
   ind_0<-which(eval_fd2>10^-2)
   if(dim(eval_fd1)[2]>dim(eval_fd2)[2]) eval_fd2<-matrix(rep(eval_fd2,dim(eval_fd1)[2]),dim(eval_fd1)[1],dim(eval_fd1)[2])
   eval_fde2<-eval_fd2
@@ -100,13 +100,13 @@ new_mul.fd3<-function (e1,e2) {
 new_sqrt.fd<-function (e1, e2=1/2,eval_fd=NULL,seq_eval=NULL,c=1) {
   range<-e1$basis$rangeval
   seq_eval<-if(is.null(seq_eval))seq(range[1],range[2],length.out = 400) else seq_eval
-  eval_fd<-if(is.null(eval_fd))eval.fd(seq_eval,e1) else eval_fd
+  eval_fd<-if(is.null(eval_fd))fda::eval.fd(seq_eval,e1) else eval_fd
   if(e2==1/2)eval_fd=abs(eval_fd)
   eval_fde2<-(eval_fd/c)^e2
   fd<-fda::smooth.basis(seq_eval,eval_fde2,e1$basis)$fd
   return(fd)
 }
-inprod2<-function (fdobj1, fdobj2 = NULL, Lfdobj1 = int2Lfd(0), Lfdobj2 = int2Lfd(0),
+inprod2<-function (fdobj1, fdobj2 = NULL, Lfdobj1 = fda::int2Lfd(0), Lfdobj2 = fda::int2Lfd(0),
                    rng = range1, wtfd = 0)
 {
   result1 <- fdchk(fdobj1)
@@ -126,10 +126,10 @@ inprod2<-function (fdobj1, fdobj2 = NULL, Lfdobj1 = int2Lfd(0), Lfdobj2 = int2Lf
     }
     else {
       if (temptype == "fourier")
-        basis2 <- create.fourier.basis(temprng, 1)
-      else basis2 <- create.constant.basis(temprng)
+        basis2 <- fda::create.fourier.basis(temprng, 1)
+      else basis2 <- fda::create.constant.basis(temprng)
     }
-    fdobj2 <- fd(1, basis2)
+    fdobj2 <- fda::fd(1, basis2)
   }
   result2 <- fdchk(fdobj2)
   nrep2 <- result2[[1]]
@@ -140,17 +140,17 @@ inprod2<-function (fdobj1, fdobj2 = NULL, Lfdobj1 = int2Lfd(0), Lfdobj2 = int2Lf
   range2 <- basisobj2$rangeval
   if (rng[1] < range1[1] || rng[2] > range1[2])
     stop("Limits of integration are inadmissible.")
-  if (is.fd(fdobj1) && is.fd(fdobj2) && type1 == "bspline" &&
+  if (fda::is.fd(fdobj1) && fda::is.fd(fdobj2) && type1 == "bspline" &&
       type2 == "bspline" && is.eqbasis(basisobj1, basisobj2) &&
       is.integer(Lfdobj1) && is.integer(Lfdobj2) && length(basisobj1$dropind) ==
       0 && length(basisobj1$dropind) == 0 && wtfd == 0 &&
       all(rng == range1)) {
-    inprodmat <- inprod.bspline(fdobj1, fdobj2, Lfdobj1$nderiv,
-                                Lfdobj2$nderiv)
+    inprodmat <- fda::inprod.bspline(fdobj1, fdobj2, Lfdobj1$nderiv,
+                                     Lfdobj2$nderiv)
     return(inprodmat)
   }
-  Lfdobj1 <- int2Lfd(Lfdobj1)
-  Lfdobj2 <- int2Lfd(Lfdobj2)
+  Lfdobj1 <- fda::int2Lfd(Lfdobj1)
+  Lfdobj2 <- fda::int2Lfd(Lfdobj2)
   iter <- 0
   rngvec <- rng
   knotmult <- numeric(0)
@@ -184,10 +184,10 @@ inprod2<-function (fdobj1, fdobj2 = NULL, Lfdobj1 = int2Lfd(0), Lfdobj2 = int2Lf
     h[2] <- 0.25
     s <- array(0, c(JMAXP, nrep1, nrep2))
     sdim <- length(dim(s))
-    fx1 <- eval.fd(rngi, fdobj1, Lfdobj1)
-    fx2 <- eval.fd(rngi, fdobj2, Lfdobj2)
+    fx1 <- fda::eval.fd(rngi, fdobj1, Lfdobj1)
+    fx2 <- fda::eval.fd(rngi, fdobj2, Lfdobj2)
     if (!is.numeric(wtfd)) {
-      wtd <- eval.fd(rngi, wtfd, 0)
+      wtd <- fda::eval.fd(rngi, wtfd, 0)
       fx2 <- matrix(wtd, dim(wtd)[1], dim(fx2)[2]) * fx2
     }
     s[1, , ] <- width * matrix(crossprod(fx1, fx2), nrep1,
@@ -202,10 +202,10 @@ inprod2<-function (fdobj1, fdobj2 = NULL, Lfdobj1 = int2Lfd(0), Lfdobj2 = int2Lf
         del <- width/tnm
         x <- seq(rngi[1] + del/2, rngi[2] - del/2, del)
       }
-      fx1 <- eval.fd(x, fdobj1, Lfdobj1)
-      fx2 <- eval.fd(x, fdobj2, Lfdobj2)
+      fx1 <- fda::eval.fd(x, fdobj1, Lfdobj1)
+      fx2 <- fda::eval.fd(x, fdobj2, Lfdobj2)
       if (!is.numeric(wtfd)) {
-        wtd <- eval.fd(wtfd, x, 0)
+        wtd <- fda::eval.fd(wtfd, x, 0)
         fx2 <- matrix(wtd, dim(wtd)[1], dim(fx2)[2]) *
           fx2
       }
@@ -294,8 +294,8 @@ get_ARL<-function(mod_phaseII,t_out=NULL,min_t=0){
   seq_x<-mod_phaseII$seq_x
   dom_limit<-CL_T2$basis$rangeval
   grid_eval<-seq(min(dom_limit),max(dom_limit),length.out = 500)
-  eval_CL_T2<-eval.fd(grid_eval,CL_T2)
-  eval_CL_SPE<-eval.fd(grid_eval,CL_SPE)
+  eval_CL_T2<-fda::eval.fd(grid_eval,CL_T2)
+  eval_CL_SPE<-fda::eval.fd(grid_eval,CL_SPE)
   eval_CL_T2[eval_CL_T2<0]=0.01
   eval_CL_SPE[eval_CL_SPE<0]=0.01
   FA<-TD<-numeric()
@@ -308,8 +308,8 @@ get_ARL<-function(mod_phaseII,t_out=NULL,min_t=0){
     grid_eval_i<-grid_eval[ind_grid]
     eval_CL_T2_i<-eval_CL_T2[ind_grid]
     eval_CL_SPE_i<-eval_CL_SPE[ind_grid]
-    eval_T2_i<-eval.fd(grid_eval_i,T2_fd[[ii]])
-    eval_SPE_i<-eval.fd(grid_eval_i,SPE_fd[[ii]])
+    eval_T2_i<-fda::eval.fd(grid_eval_i,T2_fd[[ii]])
+    eval_SPE_i<-fda::eval.fd(grid_eval_i,SPE_fd[[ii]])
 
     eval_CL_SPE_i[eval_CL_SPE_i<0]=0.01
     eval_T2_i[eval_T2_i<0]=0.01
@@ -401,7 +401,7 @@ fdchk<-function (fdobj)
   else {
     if (inherits(fdobj, "basisfd")) {
       coef <- diag(rep(1, fdobj$nbasis - length(fdobj$dropind)))
-      fdobj <- fd(coef, fdobj)
+      fdobj <- fda::fd(coef, fdobj)
     }
     else {
       stop("FDOBJ is not an FD object.")

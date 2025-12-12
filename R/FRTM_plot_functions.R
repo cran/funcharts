@@ -17,8 +17,8 @@ if(is.null(aa$ind_sel))ind_sel=1:length(mod$T2_fd) else ind_sel=aa$ind_sel
   base::on.exit( graphics::par(oldpar))
   graphics::par(mfrow=c(1,3))
     # par(mfrow=c(1,3))
-  T_2_mat<-sapply(1:length(ind_sel),function(ii)eval.fd(seq(mod$T2_fd[[ind_sel[ii]]]$basis$rangeval[1],mod$T2_fd[[ind_sel[ii]]]$basis$rangeval[2],l=30),mod$T2_fd[[ind_sel[ii]]]))
-  SPE_mat<-sapply(1:length(ind_sel),function(ii)eval.fd(seq(mod$SPE_fd[[ind_sel[ii]]]$basis$rangeval[1],mod$SPE_fd[[ind_sel[ii]]]$basis$rangeval[2],l=30),mod$SPE_fd[[ind_sel[ii]]]))
+  T_2_mat<-sapply(1:length(ind_sel),function(ii)fda::eval.fd(seq(mod$T2_fd[[ind_sel[ii]]]$basis$rangeval[1],mod$T2_fd[[ind_sel[ii]]]$basis$rangeval[2],l=30),mod$T2_fd[[ind_sel[ii]]]))
+  SPE_mat<-sapply(1:length(ind_sel),function(ii)fda::eval.fd(seq(mod$SPE_fd[[ind_sel[ii]]]$basis$rangeval[1],mod$SPE_fd[[ind_sel[ii]]]$basis$rangeval[2],l=30),mod$SPE_fd[[ind_sel[ii]]]))
     plot_lfd(mod$T2_fd[ind_sel],ylim=c(0,max(T_2_mat,na.rm = T)+1),xlim=c(0,max(seq_x)),ylab=expression("T"^{"2"}),xlab="t")
     graphics::legend("topleft",lty=c(1),lwd=2,col=2,legend = c("CL"))
     graphics::lines(mod$CL_T2,lwd=2,col=2)
@@ -78,7 +78,7 @@ plot.mFPCA<-function(x,...){
     if(!is.null(mod$eigvect_sc)) graphics::layout(matrix(1:(K*(nvar+1)),K,nvar+1,byrow=TRUE), widths = c(rep(1,nvar),0.4)) else  graphics::layout(matrix(1:(K*(nvar)),K,nvar,byrow=TRUE), widths = rep(1,nvar))
     tot_var<-round(mod$varprop*100,digits = 2)
     for (ii in 1:K) {
-      per_fd<-sapply(1:nvar,function(iii)inprod(mod$eigfun_fd[[iii]][ii],mod$eigfun_fd[[iii]][ii])*weights[iii])
+      per_fd<-sapply(1:nvar,function(iii)fda::inprod(mod$eigfun_fd[[iii]][ii],mod$eigfun_fd[[iii]][ii])*weights[iii])
       per_sc<-if(!is.null(mod$eigvect_sc))diag(mod$eigvect_sc[,ii]%*%t(mod$eigvect_sc[,ii])%*%diag(weights[(nvar+1):length(weights)])) else NULL
       per<-round(c(per_fd,per_sc)/sum(c(per_fd,per_sc))*100,digits = 2)
       for(kk in 1:nvar){
