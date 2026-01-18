@@ -1,7 +1,7 @@
-62f1e8b45a0bab22c9a84c681b34a884 *DESCRIPTION
+e9c0a57d38be658cc52494596e50e8e6 *DESCRIPTION
 3ca5b4cb810a579abe6aaf6be7b6efa5 *NAMESPACE
-68f1208982eb53ecf9c4488c4842d41e *NEWS.md
-02ff48761cc25550cf1aa14dc5eda1c0 *R/00_mfd.R
+71a4733bd80436fb066046dceceeb2c7 *NEWS.md
+f64e0983087c02e3773aea0356b665ec *R/00_mfd.R
 d6e4702e95ad466f714f9cc918b54fb1 *R/01_pca.mfd.R
 c86b12cea5c63b1cd46f3c41112ced3b *R/02_fof_pc.R
 1d03d150b57131ddc2f5deec12ef0e3f *R/02_sof_pc.R
@@ -23,7 +23,7 @@ cbfe3ddd94d48082fb13b8d12082e4fc *R/real_time_01_pca.mfd.R
 56ddaecbf6ea5a206c39c7ce020623b2 *R/real_time_02_fof_pc.R
 ac8595a9b716117f3db39b8d236e2e4e *R/real_time_02_sof_pc.R
 b3565e33228dcbcc2aa5a71fd3da1e6c *R/real_time_04_phaseII.R
-5acb5ec8c969f0870b102b61d9e7e303 *R/rmfcc.R
+09fb34c327ed85a145728ac5b0d2c44e *R/rmfcc.R
 0301d481658c8b0b97232d2faff043c1 *R/simulate.R
 9d40159f50a5fc9949cbfe95a2884126 *build/partial.rdb
 3223ba693374af2614eb34d532c925ba *build/vignette.rds
@@ -46,8 +46,12 @@ aaa2b26c2576bc5a9183108c6cc2fb17 *man/FMRCC_PhaseI.Rd
 d0f8fc50011760bb420b1dc5fc085f11 *man/FRTM_PhaseI.Rd
 dc55e81c1e831b90bdf30f055a93c976 *man/FRTM_PhaseII.Rd
 26db076cb60ae2558af39cecb728e244 *man/OEBFDTW.Rd
+36e8575df6e68b188803e646a353a75d *man/RoAMFEWMA_PhaseI.Rd
+70fba786771dc0ecde5f501dceafd8e3 *man/RoAMFEWMA_PhaseII.Rd
 9df495015e5c4cd654310597982d7d4e *man/RoMFCC_PhaseI.Rd
 b5e548684831b12343cb91a0235f2810 *man/RoMFCC_PhaseII.Rd
+b1737a4fe71103762e9531bec16ea63a *man/RoMFCC_PhaseII_casewise.Rd
+f28bac20b99cb5bb4d94ba604502e325 *man/RoMFCC_PhaseI_casewise.Rd
 1e262ec0d07067c20ff3ff1b8df948bf *man/RoMFDI.Rd
 5b3b525724d64e3befbf6dc14ad2ca78 *man/abline_mfd.Rd
 b7dd7728f2202b15a6d8f2731db5b6ce *man/air.Rd
