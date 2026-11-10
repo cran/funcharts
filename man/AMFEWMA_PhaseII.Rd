@@ -4,7 +4,14 @@
 \alias{AMFEWMA_PhaseII}
 \title{Adaptive Multivariate Functional EWMA control chart - Phase II}
 \usage{
-AMFEWMA_PhaseII(mfdobj_2, mod_1, n_seq_2 = 1, l_seq_2 = 2000)
+AMFEWMA_PhaseII(
+  mfdobj_2,
+  mod_1,
+  n_seq_2 = 1,
+  l_seq_2 = 2000,
+  n_skip = 100,
+  include_contributions = TRUE
+)
 }
 \arguments{
 \item{mfdobj_2}{An object of class \code{mfd} containing the Phase II multivariate
@@ -22,7 +29,17 @@ Default value is 1.}
 
 \item{l_seq_2}{If \code{n_seq_2} is larger than 1, this parameter sets the
 length of each bootstrap sequence to be generated.
-Default value is 2000 (which is ignored if the default value}
+Default value is 2000 and is ignored when \code{n_seq_2} is 1.}
+
+\item{n_skip}{Number of in-control observations sampled with replacement from the Phase I
+tuning data to initialize each Phase II sequence. Threshold crossings during
+warm-up are ignored; run lengths count only Phase II observations. The
+default is 100, matching the default in \code{AMFEWMA_PhaseI}. Use 0 for
+zero initialization. Sampling is reproducible with \code{set.seed()}.}
+
+\item{include_contributions}{If \code{TRUE} (the default), include signed functional-variable
+contributions to the AMFEWMA statistic in \code{cc}. Set to \code{FALSE}
+to omit their calculation, for example when only run lengths are needed.}
 }
 \value{
 A list with the following elements.
@@ -30,10 +47,13 @@ A list with the following elements.
 \item \code{ARL_2}: the average run length estimated over the
 bootstrap sequences. If \code{n_seq_2} is 1, it is simply the run length
 observed over the Phase II sequence, i.e., the number of observations
-up to the first alarm,
+up to the first alarm, after warm-up. Sequences without an alarm within the
+available monitoring horizon are omitted from this average; if none signal,
+the existing convention returns \code{1e10},
 \item \code{RL}: the run length
 observed over the Phase II sequence, i.e., the number of observations
-up to the first alarm,
+up to the first alarm after warm-up, or \code{NA} if no alarm occurs within
+the available monitoring horizon,
 \item \code{V2}: a list with length \code{n_seq_2}, containing the
 AMFEWMA monitoring statistic in Equation (8) of Capezza
 et al. (2024), calculated in each bootstrap sequence, until the first alarm.
@@ -43,6 +63,14 @@ AMFEWMA control chart in Phase II, with the following columns.
 \code{amfewma_monitoring_statistic} contains the AMFEWMA monitoring
 statistic values calculated on the Phase II sequence,
 \code{amfewma_monitoring_statistic_lim} is the upper control limit.
+When \code{include_contributions} is \code{TRUE}, columns named
+\code{contribution_T2_<variable>} give the signed contributions of each
+functional variable to the displayed statistic. These contributions sum
+to the AMFEWMA statistic, reflect the adaptive history, and may be negative.
+No contribution limits or SPE contributions are calculated.
+The chart shows the supplied Phase II observations in their original order,
+initialized with the warm-up sample used for the first run. When
+\code{n_seq_2 > 1}, the run lengths instead use resampled Phase II sequences.
 }
 }
 \description{
@@ -78,9 +106,10 @@ mod <- AMFEWMA_PhaseI(mfdobj = mfdobj_I,
                       lambda = 0.1,
                       k = c(1, 2))
 
-cc <- AMFEWMA_PhaseII(mfdobj_2 = rbind_mfd(mfdobj_I[1:100], mfdobj_II),
+cc <- AMFEWMA_PhaseII(mfdobj_2 = mfdobj_II,
                       mod_1 = mod)
-plot_control_charts(cc$cc, nobsI = 100)
+plot_control_charts(cc$cc)
+cont_plot(cc$cc, id_num = 1, which_plot = "T2")
 }
 
 }
